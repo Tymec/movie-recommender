@@ -1,18 +1,16 @@
 [tool.poetry]
-name = "movie-recommender"
+name = "sentiment-analysis"
 package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
+click = "^8.1.7"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.1"
 pre-commit = "^3.7.0"
 ipykernel = "^6.29.4"
 ipympl = "^0.9.4"
-
-[tool.poetry.plugins.dotenv]
-location = ".env"
 
 [build-system]
 requires = ["poetry-core"]

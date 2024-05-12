@@ -15,6 +15,3 @@
 
 # Do not try and merge these files
 poetry.lock         -diff
-
-# LFS
-data/**             filter=lfs diff=lfs merge=lfs -text
