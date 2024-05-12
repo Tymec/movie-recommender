@@ -1,0 +1,18 @@
+# Auto detect text files and perform LF normalization
+# https://pablorsk.medium.com/be-a-git-ninja-the-gitattributes-file-e58c07c9e915
+*                   text=auto
+*.zip               binary
+
+# Hide from GitHub's language detection
+data/**             linguist-documentation
+
+# Remove assets from github statistics
+data/**             linguist-vendored
+
+# Set the language for these files to ensure GitHub doesn't show the comments as errors
+.vscode/*.json     linguist-language=JSON5
+
+# Do not try and merge these files
+data/**            -diff
+archive.zip        -diff
+Pipfile.lock       -diff
