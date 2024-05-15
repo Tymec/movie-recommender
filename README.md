@@ -8,6 +8,10 @@ Sentiment Analysis
 4. Run `just run --help` to see the available commands
 
 
+### Required tools
+- `just`
+- `poetry`
+
 ### TODO
 - [ ] CLI using `click` (commands: predict, train, evaluate) with settings set via flags or environment variables
 - [ ] GUI using `gradio` (tabs: predict, train, evaluate, compare, settings)
