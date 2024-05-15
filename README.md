@@ -7,6 +7,10 @@ Sentiment Analysis
 3. Run `just install` to install the dependencies
 4. Run `just run --help` to see the available commands
 
+### Datasets
+- [Sentiment140](https://www.kaggle.com/datasets/kazanova/sentiment140)
+- [IMDb](https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews)
+- [Amazon Reviews](https://www.kaggle.com/datasets/bittlingmayer/amazonreviews)
 
 ### TODO
 - [ ] CLI using `click` (commands: predict, train, evaluate) with settings set via flags or environment variables

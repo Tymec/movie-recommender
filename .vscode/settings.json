@@ -23,5 +23,6 @@
     "**/__pycache__": true,
     "**/.ruff_cache": true,
     "**/.venv": true,
+    "**/.cache": true,
   }
 }

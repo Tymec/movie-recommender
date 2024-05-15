@@ -1,92 +1,58 @@
 from __future__ import annotations
 
-from pathlib import Path
+import os
+from functools import lru_cache
+from typing import TYPE_CHECKING
 
 import gradio as gr
+import joblib
 
-from constants import MODELS_DIR
-from model import predict, tokenize
+if TYPE_CHECKING:
+    from sklearn.pipeline import Pipeline
 
-CSS_PATH = Path("style.css")
-TOKENIZER_EXT = ".tokenizer.pkl"
-MODEL_EXT = ".model.pkl"
+__all__ = ["launch_gui"]
+
+
 POSITIVE_LABEL = "Positive 😊"
+NEUTRAL_LABEL = "Neutral 😐"
 NEGATIVE_LABEL = "Negative 😤"
-REFRESH_SYMBOL = "🔄"
 
 
-def load_style() -> str:
-    if not CSS_PATH.is_file():
-        return ""
-
-    with Path.open(CSS_PATH) as f:
-        return f.read()
-
-
-def predict_wrapper(text: str, tokenizer: str, model: str) -> str:
-    toks = tokenize(text, MODELS_DIR / f"{tokenizer}{TOKENIZER_EXT}")
-    pred = predict(toks, MODELS_DIR / f"{model}{MODEL_EXT}")
-    return POSITIVE_LABEL if pred else NEGATIVE_LABEL
+@lru_cache(maxsize=1)
+def load_model() -> Pipeline:
+    """Load the trained model and cache it."""
+    model_path = os.environ.get("MODEL_PATH", None)
+    if model_path is None:
+        msg = "MODEL_PATH environment variable not set"
+        raise ValueError(msg)
+    return joblib.load(model_path)
 
 
-def train_wrapper() -> None:
-    msg = "Training is not supported in the GUI."
-    raise NotImplementedError(msg)
+def sentiment_analysis(text: str) -> str:
+    """Perform sentiment analysis on the provided text."""
+    model = load_model()
+    prediction = model.predict([text])[0]
+
+    if prediction == 0:
+        return NEGATIVE_LABEL
+    if prediction == 1:
+        return POSITIVE_LABEL
+    return NEUTRAL_LABEL
 
 
-def evaluate_wrapper() -> None:
-    msg = "Evaluation is not supported in the GUI."
-    raise NotImplementedError(msg)
+demo = gr.Interface(
+    fn=sentiment_analysis,
+    inputs="text",
+    outputs="label",
+    title="Sentiment Analysis",
+)
 
 
-with gr.Blocks(css=load_style()) as demo:
-    gr.Markdown("## Sentiment Analysis")
+def launch_gui(model_path: str, share: bool) -> None:
+    """Launch the Gradio GUI."""
+    os.environ["MODEL_PATH"] = model_path
+    demo.launch(share=share)
 
-    with gr.Row(equal_height=True):
-        textbox = gr.Textbox(
-            lines=10,
-            label="Enter text to analyze",
-            placeholder="Enter text here",
-            key="input-textbox",
-        )
 
-        with gr.Column():
-            output = gr.Label()
-
-            with gr.Row(elem_classes="justify-between"):
-                clear_btn = gr.ClearButton([textbox, output], value="Clear 🧹")
-                analyze_btn = gr.Button(
-                    "Analyze 🔍",
-                    variant="primary",
-                    interactive=False,
-                )
-
-            with gr.Row():
-                tokenizer_selector = gr.Dropdown(
-                    choices=[tkn.stem[: -len(".tokenizer")] for tkn in MODELS_DIR.glob(f"*{TOKENIZER_EXT}")],
-                    label="Tokenizer",
-                    key="tokenizer-selector",
-                )
-
-                model_selector = gr.Dropdown(
-                    choices=[mdl.stem[: -len(".model")] for mdl in MODELS_DIR.glob(f"*{MODEL_EXT}")],
-                    label="Model",
-                    key="model-selector",
-                )
-
-                # TODO: Refresh button
-
-    # Event handlers
-    textbox.input(
-        fn=lambda text: gr.update(interactive=bool(text.strip())),
-        inputs=[textbox],
-        outputs=[analyze_btn],
-    )
-    analyze_btn.click(
-        fn=predict_wrapper,
-        inputs=[textbox, tokenizer_selector, model_selector],
-        outputs=[output],
-    )
-
-demo.queue()
-demo.launch()
+if __name__ == "__main__":
+    demo.launch()
