@@ -108,6 +108,7 @@ ignore = [
   "PERF203", # ignore for now; investigate
   "T201",    # print
   "ANN204",  # missing-return-type-special-method
+  "ERA001",  # commented-out-code
 ]
 select = ["ALL"]
 # Allow unused variables when underscore-prefixed
