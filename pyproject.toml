@@ -1,10 +1,18 @@
 [tool.poetry]
 name = "sentiment-analysis"
 package-mode = false
+packages = [{ include = "app" }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
 click = "^8.1.7"
+scikit-learn = "^1.4.2"
+gradio = "^4.31.0"
+
+[tool.poetry.group.train.dependencies]
+pandas = "^2.2.2"
+numpy = "^1.26.4"
+seaborn = "^0.13.2"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.1"
@@ -18,6 +26,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 extend-include = ["*.ipynb"]
+src = ["app"]
 line-length = 120
 indent-width = 4
 
@@ -97,6 +106,8 @@ ignore = [
   "PT",
   "TD",
   "PERF203", # ignore for now; investigate
+  "T201",    # print
+  "ANN204",  # missing-return-type-special-method
 ]
 select = ["ALL"]
 # Allow unused variables when underscore-prefixed
@@ -107,6 +118,9 @@ convention = "google"
 
 [tool.ruff.lint.mccabe]
 max-complexity = 12
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
 
 [tool.ruff.format]
 docstring-code-format = true

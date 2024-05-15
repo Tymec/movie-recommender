@@ -16,6 +16,10 @@ trim_trailing_whitespace = true
 [*.py]
 indent_size = 4
 
+# Override rules for Juptyer notebooks
+[*.ipynb]
+indent_size = 4
+
 # Override rules for markdown
 [*.md]
 # trailing whitespace is significant in markdown -> do not remove
