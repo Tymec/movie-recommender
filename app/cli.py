@@ -7,11 +7,7 @@ import click
 
 __all__ = ["cli_wrapper"]
 
-ERROR_STR = click.style("ERROR", fg="red")
 DONE_STR = click.style("DONE", fg="green")
-POSITIVE_STR = click.style("POSITIVE", fg="green")
-NEUTRAL_STR = click.style("NEUTRAL", fg="yellow")
-NEGATIVE_STR = click.style("NEGATIVE", fg="red")
 
 
 @click.group()
@@ -62,8 +58,8 @@ def predict(model_path: Path, text: list[str]) -> None:
         text = piped_text or text
 
     if not text:
-        click.echo(f"{ERROR_STR}: No text provided")
-        return
+        msg = "No text provided"
+        raise click.UsageError(msg)
 
     click.echo("Loading model... ", nl=False)
     model = joblib.load(model_path)
@@ -72,11 +68,11 @@ def predict(model_path: Path, text: list[str]) -> None:
     click.echo("Performing sentiment analysis... ", nl=False)
     prediction = model.predict([text])[0]
     if prediction == 0:
-        sentiment = NEGATIVE_STR
+        sentiment = click.style("NEGATIVE", fg="red")
     elif prediction == 1:
-        sentiment = POSITIVE_STR
+        sentiment = click.style("POSITIVE", fg="green")
     else:
-        sentiment = NEUTRAL_STR
+        sentiment = click.style("NEUTRAL", fg="yellow")
     click.echo(sentiment)
 
 
