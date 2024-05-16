@@ -91,25 +91,39 @@ def predict(model_path: Path, text: list[str]) -> None:
     type=click.IntRange(1, None),
 )
 @click.option(
+    "--cv",
+    default=5,
+    help="Number of cross-validation folds",
+    show_default=True,
+    type=click.IntRange(1, 50),
+)
+@click.option(
     "--seed",
     default=42,
     help="Random seed (-1 for random seed)",
     show_default=True,
     type=click.IntRange(-1, None),
 )
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Overwrite the model file if it already exists",
+)
 def train(
     dataset: Literal["sentiment140", "amazonreviews", "imdb50k"],
     max_features: int,
+    cv: int,
     seed: int,
+    force: bool,
 ) -> None:
     """Train the model on the provided dataset"""
     import joblib
 
     from app.constants import MODELS_DIR
-    from app.model import create_model, load_data, train_model
+    from app.model import create_model, evaluate_model, load_data, train_model
 
     model_path = MODELS_DIR / f"{dataset}_tfidf_ft-{max_features}.pkl"
-    if model_path.exists():
+    if model_path.exists() and not force:
         click.confirm(f"Model file '{model_path}' already exists. Overwrite?", abort=True)
 
     click.echo("Preprocessing dataset... ", nl=False)
@@ -122,16 +136,17 @@ def train(
 
     # click.echo("Training model... ", nl=False)
     click.echo("Training model... ")
-    accuracy = train_model(model, text_data, label_data)
-    joblib.dump(model, model_path)
-    click.echo("Model saved to: ", nl=False)
-    click.secho(str(model_path), fg="blue")
-
+    accuracy, text_test, text_label = train_model(model, text_data, label_data)
     click.echo("Model accuracy: ", nl=False)
     click.secho(f"{accuracy:.2%}", fg="blue")
 
-    # TODO: Add hyperparameter options
-    # TODO: Random/grid search for finding best classifier and hyperparameters
+    click.echo("Model saved to: ", nl=False)
+    joblib.dump(model, model_path)
+    click.secho(str(model_path), fg="blue")
+
+    click.echo("Evaluating model... ", nl=False)
+    acc_mean, acc_std = evaluate_model(model, text_test, text_label, cv=cv)
+    click.secho(f"{acc_mean:.2%} ± {acc_std:.2%}", fg="blue")
 
 
 def cli_wrapper() -> None:

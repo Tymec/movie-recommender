@@ -13,7 +13,7 @@ from nltk.stem import WordNetLemmatizer
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
 
 from app.constants import (
@@ -28,7 +28,7 @@ from app.constants import (
     URL_REGEX,
 )
 
-__all__ = ["load_data", "create_model", "train_model"]
+__all__ = ["load_data", "create_model", "train_model", "evaluate_model"]
 
 
 class TextCleaner(BaseEstimator, TransformerMixin):
@@ -293,7 +293,7 @@ def train_model(
     text_data: list[str],
     label_data: list[int],
     seed: int = 42,
-) -> float:
+) -> tuple[float, list[str], list[int]]:
     """Train the sentiment analysis model.
 
     Args:
@@ -303,7 +303,7 @@ def train_model(
         seed: Random seed (None for random seed)
 
     Returns:
-        Accuracy score
+        Model accuracy and test data
     """
     text_train, text_test, label_train, label_test = train_test_split(
         text_data,
@@ -316,4 +316,33 @@ def train_model(
         warnings.simplefilter("ignore")
         model.fit(text_train, label_train)
 
-    return model.score(text_test, label_test)
+    return model.score(text_test, label_test), text_test, label_test
+
+
+def evaluate_model(
+    model: Pipeline,
+    text_test: list[str],
+    label_test: list[int],
+    cv: int = 5,
+) -> tuple[float, float]:
+    """Evaluate the model using cross-validation.
+
+    Args:
+        model: Trained model
+        text_test: Text data
+        label_test: Label data
+        seed: Random seed (None for random seed)
+        cv: Number of cross-validation folds
+
+    Returns:
+        Mean accuracy and standard deviation
+    """
+    scores = cross_val_score(
+        model,
+        text_test,
+        label_test,
+        cv=cv,
+        scoring="accuracy",
+        n_jobs=-1,
+    )
+    return scores.mean(), scores.std()
