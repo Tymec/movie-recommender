@@ -5,8 +5,10 @@ import re
 import warnings
 from typing import Literal
 
+import nltk
 import pandas as pd
 from joblib import Memory
+from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
@@ -248,28 +250,41 @@ def load_data(dataset: Literal["sentiment140", "amazonreviews", "imdb50k"]) -> t
 def create_model(
     max_features: int,
     seed: int | None = None,
+    verbose: bool = False,
 ) -> Pipeline:
     """Create a sentiment analysis model.
 
     Args:
         max_features: Maximum number of features
         seed: Random seed (None for random seed)
+        verbose: Whether to log progress during training
 
     Returns:
         Untrained model
     """
+    # Download NLTK data if not already downloaded
+    nltk.download("wordnet", quiet=True)
+    nltk.download("stopwords", quiet=True)
+
+    # Load English stopwords
+    stopwords_en = set(stopwords.words("english"))
+
     return Pipeline(
         [
             # Text preprocessing
             ("clean", TextCleaner()),
             ("lemma", TextLemmatizer()),
             # Preprocess (NOTE: Can be replaced with TfidfVectorizer, but left for clarity)
-            ("vectorize", CountVectorizer(stop_words="english", ngram_range=(1, 2), max_features=max_features)),
+            (
+                "vectorize",
+                CountVectorizer(stop_words=stopwords_en, ngram_range=(1, 2), max_features=max_features),
+            ),
             ("tfidf", TfidfTransformer()),
             # Classifier
             ("clf", LogisticRegression(max_iter=1000, random_state=seed)),
         ],
         memory=Memory(CACHE_DIR, verbose=0),
+        verbose=verbose,
     )
 
 

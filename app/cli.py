@@ -117,15 +117,17 @@ def train(
     click.echo(DONE_STR)
 
     click.echo("Creating model... ", nl=False)
-    model = create_model(max_features, seed=None if seed == -1 else seed)
+    model = create_model(max_features, seed=None if seed == -1 else seed, verbose=True)
     click.echo(DONE_STR)
 
-    click.echo("Training model... ", nl=False)
+    # click.echo("Training model... ", nl=False)
+    click.echo("Training model... ")
     accuracy = train_model(model, text_data, label_data)
     joblib.dump(model, model_path)
-    click.echo(DONE_STR)
+    click.echo("Model saved to: ", nl=False)
+    click.secho(str(model_path), fg="blue")
 
-    click.echo("Model accuracy: ")
+    click.echo("Model accuracy: ", nl=False)
     click.secho(f"{accuracy:.2%}", fg="blue")
 
     # TODO: Add hyperparameter options
