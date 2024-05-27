@@ -15,8 +15,3 @@ Sentiment Analysis
 ### Required tools
 - `just`
 - `poetry`
-
-### TODO
-- [ ] Use random search for hyperparameter tuning and grid search for fine-tuning
-- [ ] Use a stopword list
-- [ ] Use xgboost?
