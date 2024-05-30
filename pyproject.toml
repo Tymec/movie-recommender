@@ -3,15 +3,17 @@ name = "sentiment-analysis"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.12"
-click = "^8.1.7"
+python = "^3.11"
 scikit-learn = "^1.4.2"
-gradio = "^4.31.0"
 colorama = "^0.4.6"
-nltk = "^3.8.1"
 pandas = "^2.2.2"
 numpy = "^1.26.4"
 seaborn = "^0.13.2"
+click = "^8.1.7"
+tensorflow = { extras = ["and-cuda"], version = "^2.16.1" }
+spacy = { extras = ["cuda12x"], version = "^3.7.4" }
+gradio = "^4.26.0"
+wordcloud = "^1.9.3"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.1"

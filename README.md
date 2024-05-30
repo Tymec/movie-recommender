@@ -1,5 +1,19 @@
-Sentiment Analysis
 ---
+title: Sentiment Analysis
+emoji: 🤗
+colorFrom: yellow
+colorTo: orange
+pinned: false
+sdk: gradio
+python_version: 3.11
+app_file: app.py
+datasets:
+  - mrshu/amazonreviews
+  - stanfordnlp/sentiment140
+  - stanfordnlp/imdb
+---
+
+# Sentiment Analysis
 
 ### Usage
 1. Clone the repository
@@ -9,8 +23,8 @@ Sentiment Analysis
 
 ### Datasets
 - [Sentiment140](https://www.kaggle.com/datasets/kazanova/sentiment140)
-- [IMDb](https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews)
 - [Amazon Reviews](https://www.kaggle.com/datasets/bittlingmayer/amazonreviews)
+- [IMDB](https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews)
 
 ### Required tools
 - `just`
