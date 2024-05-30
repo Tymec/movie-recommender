@@ -16,17 +16,6 @@ AMAZONREVIEWS_URL = "https://www.kaggle.com/datasets/bittlingmayer/amazonreviews
 IMDB50K_PATH = DATA_DIR / "imdb50k.csv"
 IMDB50K_URL = "https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews"
 
-URL_REGEX = r"(https:\/\/www\.|http:\/\/www\.|https:\/\/|http:\/\/)?[a-zA-Z]{2,}(\.[a-zA-Z]{2,})(\.[a-zA-Z]{2,})?\/[a-zA-Z0-9]{2,}|((https:\/\/www\.|http:\/\/www\.|https:\/\/|http:\/\/)?[a-zA-Z]{2,}(\.[a-zA-Z]{2,})(\.[a-zA-Z]{2,})?)|(https:\/\/www\.|http:\/\/www\.|https:\/\/|http:\/\/)?[a-zA-Z0-9]{2,}\.[a-zA-Z0-9]{2,}\.[a-zA-Z0-9]{2,}(\.[a-zA-Z0-9]{2,})?"  # https://www.freecodecamp.org/news/how-to-write-a-regular-expression-for-a-url/
-EMOTICON_MAP = {
-    "SMILE": [":)", ":-)", ": )", ":D", ":-D", ": D", ";)", ";-)", "; )", ":>", ":->", ": >", ":]", ":-]", ": ]"],
-    "LOVE": ["<3", ":*", ":-*", ": *"],
-    "WINK": [";)", ";-)", "; )", ";>", ";->", "; >"],
-    "FROWN": [":(", ":-(", ": (", ":[", ":-[", ": ["],
-    "CRY": [":'(", ": (", ":' (", ":'[", ":' ["],
-    "SURPRISE": [":O", ":-O", ": O", ":0", ":-0", ": 0", ":o", ":-o", ": o"],
-    "ANGRY": [">:(", ">:-(", "> :(", ">:["],
-}
-
 CACHE_DIR.mkdir(exist_ok=True, parents=True)
 DATA_DIR.mkdir(exist_ok=True, parents=True)
 MODELS_DIR.mkdir(exist_ok=True, parents=True)
