@@ -8,7 +8,7 @@ import gradio as gr
 import joblib
 
 if TYPE_CHECKING:
-    from sklearn.pipeline import Pipeline
+    from sklearn.base import BaseEstimator
 
 __all__ = ["launch_gui"]
 
@@ -19,7 +19,7 @@ NEGATIVE_LABEL = "Negative 😤"
 
 
 @lru_cache(maxsize=1)
-def load_model() -> Pipeline:
+def load_model() -> BaseEstimator:
     """Load the trained model and cache it."""
     model_path = os.environ.get("MODEL_PATH", None)
     if model_path is None:

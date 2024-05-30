@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import warnings
 
+import en_core_web_sm
 import numpy as np
-import spacy
 from joblib import Memory
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -16,7 +16,7 @@ from app.constants import CACHE_DIR
 
 __all__ = ["create_model", "train_model", "evaluate_model"]
 
-nlp = spacy.load("en_core_web_sm", disable=["tok2vec", "parser", "ner"])
+nlp = en_core_web_sm.load(disable=["tok2vec", "parser", "ner"])
 
 
 class TextTokenizer(BaseEstimator, TransformerMixin):
