@@ -29,9 +29,12 @@ def cli() -> None: ...
 )
 def gui(model_path: Path, share: bool) -> None:
     """Launch the Gradio GUI"""
+    import os
+
     from app.gui import launch_gui
 
-    launch_gui(model_path, share)
+    os.environ["MODEL_PATH"] = model_path.as_posix()
+    launch_gui(share)
 
 
 @cli.command()

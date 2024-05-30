@@ -6,11 +6,13 @@ colorTo: green
 pinned: false
 sdk: gradio
 python_version: 3.11
-app_file: app.py
+app_file: app/gui.py
 datasets:
   - mrshu/amazonreviews
   - stanfordnlp/sentiment140
   - stanfordnlp/imdb
+models:
+  - spacy/en_core_web_sm
 ---
 
 # Sentiment Analysis

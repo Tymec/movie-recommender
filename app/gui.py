@@ -42,15 +42,21 @@ def sentiment_analysis(text: str) -> str:
 
 demo = gr.Interface(
     fn=sentiment_analysis,
-    inputs="text",
+    inputs=gr.Textbox(lines=10, label="Enter text here"),
     outputs="label",
     title="Sentiment Analysis",
+    description="Predict the sentiment of a given text.",
+    examples=[
+        ["I love the weather today!"],
+        ["You are a terrible person."],
+        ["The movie we watched was boring."],
+        ["This website is amazing!"],
+    ],
 )
 
 
-def launch_gui(model_path: str, share: bool) -> None:
+def launch_gui(share: bool) -> None:
     """Launch the Gradio GUI."""
-    os.environ["MODEL_PATH"] = model_path
     demo.launch(share=share)
 
 
