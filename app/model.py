@@ -121,7 +121,7 @@ def create_model(
                     token_pattern=None,
                 ),
             ),
-            ("classifier", LogisticRegression(max_iter=1000, C=1.0, random_state=seed)),
+            ("classifier", LogisticRegression(max_iter=1000, random_state=seed)),
         ],
         memory=Memory(CACHE_DIR, verbose=0),
         verbose=verbose,

@@ -93,19 +93,19 @@ def load_amazonreviews(merge: bool = True) -> tuple[list[str], list[int]]:
         raise FileNotFoundError(msg)
 
     # Load the datasets
+    dataset = []
     with bz2.BZ2File(AMAZONREVIEWS_PATH[1]) as train_file:
-        train_data = [line.decode("utf-8") for line in train_file]
+        dataset.extend([line.decode("utf-8") for line in train_file])
 
-    test_data = []
     if merge:
         with bz2.BZ2File(AMAZONREVIEWS_PATH[0]) as test_file:
-            test_data = [line.decode("utf-8") for line in test_file]
-
-    # Merge the datasets
-    data = train_data + test_data
+            dataset.extend([line.decode("utf-8") for line in test_file])
 
     # Split the data into labels and text
-    labels, texts = zip(*(line.split(" ", 1) for line in data))
+    labels, texts = zip(*(line.split(" ", 1) for line in dataset))  # NOTE: Occasionally OOM
+
+    # Free up memory
+    del dataset
 
     # Map sentiment values
     sentiments = [int(label.split("__label__")[1]) - 1 for label in labels]
