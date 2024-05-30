@@ -1,8 +1,8 @@
 ---
 title: Sentiment Analysis
 emoji: 🤗
-colorFrom: yellow
-colorTo: orange
+colorFrom: blue
+colorTo: green
 pinned: false
 sdk: gradio
 python_version: 3.11
