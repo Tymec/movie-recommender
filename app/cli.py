@@ -84,6 +84,51 @@ def predict(model_path: Path, text: list[str]) -> None:
     type=click.Choice(["sentiment140", "amazonreviews", "imdb50k"]),
 )
 @click.option(
+    "--model",
+    "model_path",
+    required=True,
+    help="Path to the trained model",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True, path_type=Path),
+)
+@click.option(
+    "--cv",
+    default=5,
+    help="Number of cross-validation folds",
+    show_default=True,
+    type=click.IntRange(1, 50),
+)
+def evaluate(
+    dataset: Literal["sentiment140", "amazonreviews", "imdb50k"],
+    model_path: Path,
+    cv: int,
+) -> None:
+    """Evaluate the model on the test dataset"""
+    import joblib
+
+    from app.data import load_data
+    from app.model import evaluate_model
+
+    click.echo("Loading dataset... ", nl=False)
+    text_data, label_data = load_data(dataset)
+    click.echo(DONE_STR)
+
+    click.echo("Loading model... ", nl=False)
+    model = joblib.load(model_path)
+    click.echo(DONE_STR)
+
+    click.echo("Evaluating model... ", nl=False)
+    acc_mean, acc_std = evaluate_model(model, text_data, label_data, folds=cv)
+    click.secho(f"{acc_mean:.2%} ± {acc_std:.2%}", fg="blue")
+
+
+@cli.command()
+@click.option(
+    "--dataset",
+    required=True,
+    help="Dataset to train the model on",
+    type=click.Choice(["sentiment140", "amazonreviews", "imdb50k"]),
+)
+@click.option(
     "--max-features",
     default=20000,
     help="Maximum number of features",
@@ -120,13 +165,14 @@ def train(
     import joblib
 
     from app.constants import MODELS_DIR
-    from app.model import create_model, evaluate_model, load_data, train_model
+    from app.data import load_data
+    from app.model import create_model, evaluate_model, train_model
 
     model_path = MODELS_DIR / f"{dataset}_tfidf_ft-{max_features}.pkl"
     if model_path.exists() and not force:
         click.confirm(f"Model file '{model_path}' already exists. Overwrite?", abort=True)
 
-    click.echo("Preprocessing dataset... ", nl=False)
+    click.echo("Loading dataset... ", nl=False)
     text_data, label_data = load_data(dataset)
     click.echo(DONE_STR)
 
@@ -134,9 +180,8 @@ def train(
     model = create_model(max_features, seed=None if seed == -1 else seed, verbose=True)
     click.echo(DONE_STR)
 
-    # click.echo("Training model... ", nl=False)
     click.echo("Training model... ")
-    accuracy, text_test, text_label = train_model(model, text_data, label_data)
+    accuracy = train_model(model, text_data, label_data)
     click.echo("Model accuracy: ", nl=False)
     click.secho(f"{accuracy:.2%}", fg="blue")
 
@@ -145,7 +190,7 @@ def train(
     click.secho(str(model_path), fg="blue")
 
     click.echo("Evaluating model... ", nl=False)
-    acc_mean, acc_std = evaluate_model(model, text_test, text_label, cv=cv)
+    acc_mean, acc_std = evaluate_model(model, text_data, label_data, folds=cv)
     click.secho(f"{acc_mean:.2%} ± {acc_std:.2%}", fg="blue")
 
 
