@@ -20,5 +20,5 @@
   poetry export -f requirements.txt --output requirements-dev.txt
 
 [no-exit-message]
-@app *ARGS:
+@run *ARGS:
   poetry run python -m app {{ARGS}}
