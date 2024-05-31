@@ -16,6 +16,9 @@ AMAZONREVIEWS_URL = "https://www.kaggle.com/datasets/bittlingmayer/amazonreviews
 IMDB50K_PATH = DATA_DIR / "imdb50k.csv"
 IMDB50K_URL = "https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews"
 
+TEST_DATASET_PATH = DATA_DIR / "test.csv"
+TEST_DATASET_URL = "https://huggingface.co/datasets/Sp1786/multiclass-sentiment-analysis-dataset"
+
 CACHE_DIR.mkdir(exist_ok=True, parents=True)
 DATA_DIR.mkdir(exist_ok=True, parents=True)
 MODELS_DIR.mkdir(exist_ok=True, parents=True)
