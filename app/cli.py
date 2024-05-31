@@ -230,7 +230,7 @@ def train(
 
     from app.constants import CACHE_DIR, MODELS_DIR
     from app.data import load_data, tokenize
-    from app.model import create_model, train_model
+    from app.model import train_model
 
     model_path = MODELS_DIR / f"{dataset}_tfidf_ft-{max_features}.pkl"
     if model_path.exists() and not force:
@@ -258,13 +258,19 @@ def train(
         del text_data
 
     click.echo("Training model... ")
-    model = create_model(max_features, seed=None if seed == -1 else seed, verbose=verbose)
-    trained_model, accuracy = train_model(model, token_data, label_data, folds=cv, seed=seed, verbose=verbose)
+    model, accuracy = train_model(
+        token_data,
+        label_data,
+        max_features=max_features,
+        folds=cv,
+        seed=seed,
+        verbose=verbose,
+    )
     click.echo("Model accuracy: ", nl=False)
     click.secho(f"{accuracy:.2%}", fg="blue")
 
     click.echo("Model saved to: ", nl=False)
-    joblib.dump(trained_model, model_path, compress=3)
+    joblib.dump(model, model_path, compress=3)
     click.secho(str(model_path), fg="blue")
 
 

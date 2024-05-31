@@ -16,7 +16,7 @@ from app.data import tokenize
 if TYPE_CHECKING:
     from sklearn.base import BaseEstimator
 
-__all__ = ["create_model", "train_model", "evaluate_model", "infer_model"]
+__all__ = ["train_model", "evaluate_model", "infer_model"]
 
 
 def _identity(x: list[str]) -> list[str]:
@@ -31,46 +31,10 @@ def _identity(x: list[str]) -> list[str]:
     return x
 
 
-def create_model(
-    max_features: int,
-    seed: int | None = None,
-    verbose: bool = False,
-) -> Pipeline:
-    """Create a sentiment analysis model.
-
-    Args:
-        max_features: Maximum number of features
-        seed: Random seed (None for random seed)
-        verbose: Whether to output additional information
-
-    Returns:
-        Untrained model
-    """
-    return Pipeline(
-        [
-            (
-                "vectorizer",
-                TfidfVectorizer(
-                    max_features=max_features,
-                    ngram_range=(1, 2),
-                    # disable text processing
-                    tokenizer=_identity,
-                    preprocessor=_identity,
-                    lowercase=False,
-                    token_pattern=None,
-                ),
-            ),
-            ("classifier", LogisticRegression(max_iter=1000, random_state=seed)),
-        ],
-        memory=Memory(CACHE_DIR, verbose=0),
-        verbose=verbose,
-    )
-
-
 def train_model(
-    model: BaseEstimator,
     token_data: list[str],
     label_data: list[int],
+    max_features: int,
     folds: int = 5,
     seed: int = 42,
     verbose: bool = False,
@@ -81,6 +45,7 @@ def train_model(
         model: Untrained model
         token_data: Tokenized text data
         label_data: Label data
+        max_features: Maximum number of features
         folds: Number of cross-validation folds
         seed: Random seed (None for random seed)
         verbose: Whether to output additional information
@@ -100,6 +65,32 @@ def train_model(
         "classifier__solver": ["liblinear", "saga"],
     }
 
+    model = Pipeline(
+        [
+            (
+                "vectorizer",
+                TfidfVectorizer(
+                    max_features=max_features,
+                    ngram_range=(1, 2),
+                    # disable text processing
+                    tokenizer=_identity,
+                    preprocessor=_identity,
+                    lowercase=False,
+                    token_pattern=None,
+                ),
+            ),
+            (
+                "classifier",
+                LogisticRegression(
+                    max_iter=1000,
+                    random_state=None if seed == -1 else seed,
+                ),
+            ),
+        ],
+        memory=Memory(CACHE_DIR, verbose=0),
+        verbose=verbose,
+    )
+
     search = RandomizedSearchCV(
         model,
         param_distributions,
@@ -111,9 +102,9 @@ def train_model(
         verbose=verbose,
     )
 
-    os.environ["PYTHONWARNINGS"] = "ignore"
+    # os.environ["PYTHONWARNINGS"] = "ignore"
     search.fit(text_train, label_train)
-    del os.environ["PYTHONWARNINGS"]
+    # del os.environ["PYTHONWARNINGS"]
 
     best_model = search.best_estimator_
     return best_model, best_model.score(text_test, label_test)
