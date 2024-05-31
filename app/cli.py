@@ -194,8 +194,8 @@ def evaluate(
 )
 @click.option(
     "--processes",
-    default=8,
-    help="Number of parallel jobs during tokenization",
+    default=4,
+    help="Number of parallel jobs to run",
     show_default=True,
 )
 @click.option(
@@ -263,6 +263,7 @@ def train(
         label_data,
         max_features=max_features,
         folds=cv,
+        n_jobs=processes,
         seed=seed,
         verbose=verbose,
     )

@@ -36,6 +36,7 @@ def train_model(
     label_data: list[int],
     max_features: int,
     folds: int = 5,
+    n_jobs: int = 4,
     seed: int = 42,
     verbose: bool = False,
 ) -> tuple[BaseEstimator, float]:
@@ -47,6 +48,7 @@ def train_model(
         label_data: Label data
         max_features: Maximum number of features
         folds: Number of cross-validation folds
+        n_jobs: Number of parallel jobs
         seed: Random seed (None for random seed)
         verbose: Whether to output additional information
 
@@ -94,12 +96,12 @@ def train_model(
     search = RandomizedSearchCV(
         model,
         param_distributions,
-        n_iter=10,
         cv=folds,
-        scoring="accuracy",
         random_state=seed,
-        n_jobs=-1,
+        n_jobs=n_jobs,
         verbose=verbose,
+        scoring="accuracy",
+        n_iter=10,
     )
 
     # os.environ["PYTHONWARNINGS"] = "ignore"
