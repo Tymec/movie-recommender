@@ -111,8 +111,8 @@ def predict(model_path: Path, text: list[str]) -> None:
 )
 @click.option(
     "--processes",
-    default=8,
-    help="Number of parallel jobs during tokenization",
+    default=4,
+    help="Number of parallel jobs to run",
     show_default=True,
 )
 @click.option(
@@ -129,6 +129,8 @@ def evaluate(
     verbose: bool,
 ) -> None:
     """Evaluate the model on the the specified dataset"""
+    import gc
+
     import joblib
 
     from app.constants import CACHE_DIR
@@ -155,13 +157,21 @@ def evaluate(
         click.echo(DONE_STR)
 
         del text_data
+        gc.collect()
 
     click.echo("Loading model... ", nl=False)
     model = joblib.load(model_path)
     click.echo(DONE_STR)
 
     click.echo("Evaluating model... ", nl=False)
-    acc_mean, acc_std = evaluate_model(model, token_data, label_data, folds=cv, verbose=verbose)
+    acc_mean, acc_std = evaluate_model(
+        model,
+        token_data,
+        label_data,
+        folds=cv,
+        n_jobs=processes,
+        verbose=verbose,
+    )
     click.secho(f"{acc_mean:.2%} ± {acc_std:.2%}", fg="blue")
 
 
@@ -206,9 +216,14 @@ def evaluate(
     type=click.IntRange(-1, None),
 )
 @click.option(
-    "--force",
+    "--overwrite",
     is_flag=True,
     help="Overwrite the model file if it already exists",
+)
+@click.option(
+    "--skip-cache",
+    is_flag=True,
+    help="Ignore cached tokenized data",
 )
 @click.option(
     "--verbose",
@@ -222,10 +237,13 @@ def train(
     batch_size: int,
     processes: int,
     seed: int,
-    force: bool,
+    overwrite: bool,
+    skip_cache: bool,
     verbose: bool,
 ) -> None:
     """Train the model on the provided dataset"""
+    import gc
+
     import joblib
 
     from app.constants import CACHE_DIR, MODELS_DIR
@@ -233,12 +251,12 @@ def train(
     from app.model import train_model
 
     model_path = MODELS_DIR / f"{dataset}_tfidf_ft-{max_features}.pkl"
-    if model_path.exists() and not force:
+    if model_path.exists() and not overwrite:
         click.confirm(f"Model file '{model_path}' already exists. Overwrite?", abort=True)
 
     cached_data_path = CACHE_DIR / f"{dataset}_tokenized.pkl"
     use_cached_data = False
-    if cached_data_path.exists():
+    if cached_data_path.exists() and not skip_cache:
         use_cached_data = click.confirm(f"Found existing tokenized data for '{dataset}'. Use it?", default=True)
 
     if use_cached_data:
@@ -256,6 +274,7 @@ def train(
         click.echo(DONE_STR)
 
         del text_data
+        gc.collect()
 
     click.echo("Training model... ")
     model, accuracy = train_model(

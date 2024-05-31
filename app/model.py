@@ -99,14 +99,14 @@ def train_model(
         cv=folds,
         random_state=seed,
         n_jobs=n_jobs,
-        verbose=verbose,
+        verbose=2 if verbose else 0,
         scoring="accuracy",
         n_iter=10,
     )
 
-    # os.environ["PYTHONWARNINGS"] = "ignore"
+    os.environ["PYTHONWARNINGS"] = "ignore"
     search.fit(text_train, label_train)
-    # del os.environ["PYTHONWARNINGS"]
+    del os.environ["PYTHONWARNINGS"]
 
     best_model = search.best_estimator_
     return best_model, best_model.score(text_test, label_test)
@@ -117,6 +117,7 @@ def evaluate_model(
     token_data: list[str],
     label_data: list[int],
     folds: int = 5,
+    n_jobs: int = 4,
     verbose: bool = False,
 ) -> tuple[float, float]:
     """Evaluate the model using cross-validation.
@@ -126,6 +127,7 @@ def evaluate_model(
         token_data: Tokenized text data
         label_data: Label data
         folds: Number of cross-validation folds
+        n_jobs: Number of parallel jobs
         verbose: Whether to output additional information
 
     Returns:
@@ -138,8 +140,8 @@ def evaluate_model(
         label_data,
         cv=folds,
         scoring="accuracy",
-        n_jobs=-1,
-        verbose=verbose,
+        n_jobs=n_jobs,
+        verbose=2 if verbose else 0,
     )
     del os.environ["PYTHONWARNINGS"]
     return scores.mean(), scores.std()
