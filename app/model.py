@@ -1,85 +1,25 @@
 from __future__ import annotations
 
-import warnings
+import os
+from typing import TYPE_CHECKING
 
 import numpy as np
-import spacy
 from joblib import Memory
-from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import RandomizedSearchCV, cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
-from tqdm import tqdm
 
 from app.constants import CACHE_DIR
+from app.data import tokenize
 
-__all__ = ["create_model", "train_model", "evaluate_model"]
+if TYPE_CHECKING:
+    from sklearn.base import BaseEstimator
 
-try:
-    nlp = spacy.load("en_core_web_sm", disable=["tok2vec", "parser", "ner"])
-except OSError:
-    print("Downloading spaCy model...")
-
-    from spacy.cli import download as spacy_download
-
-    spacy_download("en_core_web_sm")
-    nlp = spacy.load("en_core_web_sm", disable=["tok2vec", "parser", "ner"])
+__all__ = ["create_model", "train_model", "evaluate_model", "infer_model"]
 
 
-class TextTokenizer(BaseEstimator, TransformerMixin):
-    def __init__(
-        self,
-        *,
-        character_threshold: int = 2,
-        batch_size: int = 1024,
-        n_jobs: int = 8,
-        progress: bool = True,
-    ) -> None:
-        self.character_threshold = character_threshold
-        self.batch_size = batch_size
-        self.n_jobs = n_jobs
-        self.progress = progress
-
-    def fit(self, _data: list[str], _labels: list[int] | None = None) -> TextTokenizer:
-        return self
-
-    def transform(self, data: list[str]) -> list[list[str]]:
-        tokenized = []
-        for doc in tqdm(
-            nlp.pipe(data, batch_size=self.batch_size, n_process=self.n_jobs),
-            total=len(data),
-            disable=not self.progress,
-        ):
-            tokens = []
-            for token in doc:
-                # Ignore stop words and punctuation
-                if token.is_stop or token.is_punct:
-                    continue
-                # Ignore emails, URLs and numbers
-                if token.like_email or token.like_email or token.like_num:
-                    continue
-
-                # Lemmatize and lowercase
-                tok = token.lemma_.lower().strip()
-
-                # Format hashtags
-                if tok.startswith("#"):
-                    tok = tok[1:]
-
-                # Ignore short and non-alphanumeric tokens
-                if len(tok) < self.character_threshold or not tok.isalnum():
-                    continue
-
-                # TODO: Emoticons and emojis
-                # TODO: Spelling correction
-
-                tokens.append(tok)
-            tokenized.append(tokens)
-        return tokenized
-
-
-def identity(x: list[str]) -> list[str]:
+def _identity(x: list[str]) -> list[str]:
     """Identity function for use in TfidfVectorizer.
 
     Args:
@@ -101,22 +41,21 @@ def create_model(
     Args:
         max_features: Maximum number of features
         seed: Random seed (None for random seed)
-        verbose: Whether to log progress during training
+        verbose: Whether to output additional information
 
     Returns:
         Untrained model
     """
     return Pipeline(
         [
-            ("tokenizer", TextTokenizer(progress=True)),
             (
                 "vectorizer",
                 TfidfVectorizer(
                     max_features=max_features,
                     ngram_range=(1, 2),
                     # disable text processing
-                    tokenizer=identity,
-                    preprocessor=identity,
+                    tokenizer=_identity,
+                    preprocessor=_identity,
                     lowercase=False,
                     token_pattern=None,
                 ),
@@ -130,23 +69,27 @@ def create_model(
 
 def train_model(
     model: BaseEstimator,
-    text_data: list[str],
+    token_data: list[str],
     label_data: list[int],
+    folds: int = 5,
     seed: int = 42,
+    verbose: bool = False,
 ) -> tuple[BaseEstimator, float]:
     """Train the sentiment analysis model.
 
     Args:
         model: Untrained model
-        text_data: Text data
+        token_data: Tokenized text data
         label_data: Label data
+        folds: Number of cross-validation folds
         seed: Random seed (None for random seed)
+        verbose: Whether to output additional information
 
     Returns:
         Trained model and accuracy
     """
     text_train, text_test, label_train, label_test = train_test_split(
-        text_data,
+        token_data,
         label_data,
         test_size=0.2,
         random_state=seed,
@@ -154,50 +97,82 @@ def train_model(
 
     param_distributions = {
         "classifier__C": np.logspace(-4, 4, 20),
-        "classifier__penalty": ["l1", "l2"],
+        "classifier__solver": ["liblinear", "saga"],
     }
 
     search = RandomizedSearchCV(
         model,
         param_distributions,
         n_iter=10,
-        cv=5,
+        cv=folds,
         scoring="accuracy",
         random_state=seed,
         n_jobs=-1,
+        verbose=verbose,
     )
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        # model.fit(text_train, label_train)
-        search.fit(text_train, label_train)
+    os.environ["PYTHONWARNINGS"] = "ignore"
+    search.fit(text_train, label_train)
+    del os.environ["PYTHONWARNINGS"]
 
     best_model = search.best_estimator_
     return best_model, best_model.score(text_test, label_test)
 
 
 def evaluate_model(
-    model: Pipeline,
-    text_data: list[str],
+    model: BaseEstimator,
+    token_data: list[str],
     label_data: list[int],
     folds: int = 5,
+    verbose: bool = False,
 ) -> tuple[float, float]:
     """Evaluate the model using cross-validation.
 
     Args:
         model: Trained model
-        text_data: Text data
+        token_data: Tokenized text data
         label_data: Label data
         folds: Number of cross-validation folds
+        verbose: Whether to output additional information
 
     Returns:
         Mean accuracy and standard deviation
     """
+    os.environ["PYTHONWARNINGS"] = "ignore"
     scores = cross_val_score(
         model,
-        text_data,
+        token_data,
         label_data,
         cv=folds,
         scoring="accuracy",
+        n_jobs=-1,
+        verbose=verbose,
     )
+    del os.environ["PYTHONWARNINGS"]
     return scores.mean(), scores.std()
+
+
+def infer_model(
+    model: BaseEstimator,
+    text_data: list[str],
+    batch_size: int = 32,
+    n_jobs: int = 4,
+) -> list[int]:
+    """Predict the sentiment of the provided text documents.
+
+    Args:
+        model: Trained model
+        text_data: Text data
+        batch_size: Batch size for tokenization
+        n_jobs: Number of parallel jobs
+
+    Returns:
+        Predicted sentiments
+    """
+    tokens = tokenize(
+        text_data,
+        batch_size=batch_size,
+        n_jobs=n_jobs,
+        show_progress=False,
+    )
+    return model.predict(tokens)

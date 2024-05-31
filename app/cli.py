@@ -55,6 +55,8 @@ def predict(model_path: Path, text: list[str]) -> None:
 
     import joblib
 
+    from app.model import infer_model
+
     text = " ".join(text).strip()
     if not sys.stdin.isatty():
         piped_text = sys.stdin.read().strip()
@@ -69,7 +71,8 @@ def predict(model_path: Path, text: list[str]) -> None:
     click.echo(DONE_STR)
 
     click.echo("Performing sentiment analysis... ", nl=False)
-    prediction = model.predict([text])[0]
+    prediction = infer_model(model, [text])[0]
+    # prediction = model.predict([text])[0]
     if prediction == 0:
         sentiment = click.style("NEGATIVE", fg="red")
     elif prediction == 1:
@@ -82,9 +85,9 @@ def predict(model_path: Path, text: list[str]) -> None:
 @cli.command()
 @click.option(
     "--dataset",
-    required=True,
-    help="Dataset to train the model on",
-    type=click.Choice(["sentiment140", "amazonreviews", "imdb50k"]),
+    default="test",
+    help="Dataset to evaluate the model on",
+    type=click.Choice(["test", "sentiment140", "amazonreviews", "imdb50k"]),
 )
 @click.option(
     "--model",
@@ -100,27 +103,65 @@ def predict(model_path: Path, text: list[str]) -> None:
     show_default=True,
     type=click.IntRange(1, 50),
 )
+@click.option(
+    "--batch-size",
+    default=512,
+    help="Size of the batches used in tokenization",
+    show_default=True,
+)
+@click.option(
+    "--processes",
+    default=8,
+    help="Number of parallel jobs during tokenization",
+    show_default=True,
+)
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Show verbose output",
+)
 def evaluate(
-    dataset: Literal["sentiment140", "amazonreviews", "imdb50k"],
+    dataset: Literal["test", "sentiment140", "amazonreviews", "imdb50k"],
     model_path: Path,
     cv: int,
+    batch_size: int,
+    processes: int,
+    verbose: bool,
 ) -> None:
-    """Evaluate the model on the test dataset"""
+    """Evaluate the model on the the specified dataset"""
     import joblib
 
-    from app.data import load_data
+    from app.constants import CACHE_DIR
+    from app.data import load_data, tokenize
     from app.model import evaluate_model
 
-    click.echo("Loading dataset... ", nl=False)
-    text_data, label_data = load_data(dataset)
-    click.echo(DONE_STR)
+    cached_data_path = CACHE_DIR / f"{dataset}_tokenized.pkl"
+    use_cached_data = False
+    if cached_data_path.exists():
+        use_cached_data = click.confirm(f"Found existing tokenized data for '{dataset}'. Use it?", default=True)
+
+    if use_cached_data:
+        click.echo("Loading cached data... ", nl=False)
+        token_data, label_data = joblib.load(cached_data_path)
+        click.echo(DONE_STR)
+    else:
+        click.echo("Loading dataset... ", nl=False)
+        text_data, label_data = load_data(dataset)
+        click.echo(DONE_STR)
+
+        click.echo("Tokenizing data... ", nl=False)
+        token_data = tokenize(text_data, batch_size=batch_size, n_jobs=processes, show_progress=True)
+        joblib.dump((token_data, label_data), cached_data_path, compress=3)
+        click.echo(DONE_STR)
+
+        del text_data
 
     click.echo("Loading model... ", nl=False)
     model = joblib.load(model_path)
     click.echo(DONE_STR)
 
     click.echo("Evaluating model... ", nl=False)
-    acc_mean, acc_std = evaluate_model(model, text_data, label_data, folds=cv)
+    acc_mean, acc_std = evaluate_model(model, token_data, label_data, folds=cv, verbose=verbose)
     click.secho(f"{acc_mean:.2%} ± {acc_std:.2%}", fg="blue")
 
 
@@ -146,6 +187,18 @@ def evaluate(
     type=click.IntRange(1, 50),
 )
 @click.option(
+    "--batch-size",
+    default=512,
+    help="Size of the batches used in tokenization",
+    show_default=True,
+)
+@click.option(
+    "--processes",
+    default=8,
+    help="Number of parallel jobs during tokenization",
+    show_default=True,
+)
+@click.option(
     "--seed",
     default=42,
     help="Random seed (-1 for random seed)",
@@ -157,44 +210,62 @@ def evaluate(
     is_flag=True,
     help="Overwrite the model file if it already exists",
 )
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Show verbose output",
+)
 def train(
     dataset: Literal["sentiment140", "amazonreviews", "imdb50k"],
     max_features: int,
     cv: int,
+    batch_size: int,
+    processes: int,
     seed: int,
     force: bool,
+    verbose: bool,
 ) -> None:
     """Train the model on the provided dataset"""
     import joblib
 
-    from app.constants import MODELS_DIR
-    from app.data import load_data
-    from app.model import create_model, evaluate_model, train_model
+    from app.constants import CACHE_DIR, MODELS_DIR
+    from app.data import load_data, tokenize
+    from app.model import create_model, train_model
 
     model_path = MODELS_DIR / f"{dataset}_tfidf_ft-{max_features}.pkl"
     if model_path.exists() and not force:
         click.confirm(f"Model file '{model_path}' already exists. Overwrite?", abort=True)
 
-    click.echo("Loading dataset... ", nl=False)
-    text_data, label_data = load_data(dataset)
-    click.echo(DONE_STR)
+    cached_data_path = CACHE_DIR / f"{dataset}_tokenized.pkl"
+    use_cached_data = False
+    if cached_data_path.exists():
+        use_cached_data = click.confirm(f"Found existing tokenized data for '{dataset}'. Use it?", default=True)
 
-    click.echo("Creating model... ", nl=False)
-    model = create_model(max_features, seed=None if seed == -1 else seed, verbose=True)
-    click.echo(DONE_STR)
+    if use_cached_data:
+        click.echo("Loading cached data... ", nl=False)
+        token_data, label_data = joblib.load(cached_data_path)
+        click.echo(DONE_STR)
+    else:
+        click.echo("Loading dataset... ", nl=False)
+        text_data, label_data = load_data(dataset)
+        click.echo(DONE_STR)
+
+        click.echo("Tokenizing data... ", nl=False)
+        token_data = tokenize(text_data, batch_size=batch_size, n_jobs=processes, show_progress=True)
+        joblib.dump((token_data, label_data), cached_data_path, compress=3)
+        click.echo(DONE_STR)
+
+        del text_data
 
     click.echo("Training model... ")
-    accuracy = train_model(model, text_data, label_data)
+    model = create_model(max_features, seed=None if seed == -1 else seed, verbose=verbose)
+    trained_model, accuracy = train_model(model, token_data, label_data, folds=cv, seed=seed, verbose=verbose)
     click.echo("Model accuracy: ", nl=False)
     click.secho(f"{accuracy:.2%}", fg="blue")
 
     click.echo("Model saved to: ", nl=False)
-    joblib.dump(model, model_path)
+    joblib.dump(trained_model, model_path, compress=3)
     click.secho(str(model_path), fg="blue")
-
-    click.echo("Evaluating model... ", nl=False)
-    acc_mean, acc_std = evaluate_model(model, text_data, label_data, folds=cv)
-    click.secho(f"{acc_mean:.2%} ± {acc_std:.2%}", fg="blue")
 
 
 def cli_wrapper() -> None:

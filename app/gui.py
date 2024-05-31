@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 import gradio as gr
 import joblib
 
+from app.model import infer_model
+
 if TYPE_CHECKING:
     from sklearn.base import BaseEstimator
 
@@ -31,7 +33,7 @@ def load_model() -> BaseEstimator:
 def sentiment_analysis(text: str) -> str:
     """Perform sentiment analysis on the provided text."""
     model = load_model()
-    prediction = model.predict([text])[0]
+    prediction = infer_model(model, [text])[0]
 
     if prediction == 0:
         return NEGATIVE_LABEL
@@ -52,6 +54,7 @@ demo = gr.Interface(
         ["The movie we watched was boring."],
         ["This website is amazing!"],
     ],
+    allow_flagging=False,
 )
 
 
