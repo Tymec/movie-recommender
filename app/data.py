@@ -82,6 +82,7 @@ def tokenize(
             nlp.pipe(text_data, batch_size=batch_size, n_process=n_jobs),
             total=len(text_data),
             disable=not show_progress,
+            unit="doc",
         )
     ]
 
@@ -138,11 +139,8 @@ def load_sentiment140(include_neutral: bool = False) -> tuple[list[str], list[in
     return data["text"].tolist(), data["sentiment"].tolist()
 
 
-def load_amazonreviews(merge: bool = True) -> tuple[list[str], list[int]]:
+def load_amazonreviews() -> tuple[list[str], list[int]]:
     """Load the amazonreviews dataset and make it suitable for use.
-
-    Args:
-        merge: Whether to merge the test and train datasets (otherwise ignore test)
 
     Returns:
         Text and label data
@@ -151,27 +149,20 @@ def load_amazonreviews(merge: bool = True) -> tuple[list[str], list[int]]:
         FileNotFoundError: If the dataset is not found
     """
     # Check if the dataset exists
-    test_exists = AMAZONREVIEWS_PATH[0].exists() or not merge
-    train_exists = AMAZONREVIEWS_PATH[1].exists()
-    if not (test_exists and train_exists):
+    if not AMAZONREVIEWS_PATH.exists():
         msg = (
-            f"Amazonreviews dataset not found at: '{AMAZONREVIEWS_PATH[0]}' and '{AMAZONREVIEWS_PATH[1]}'\n"
+            f"Amazonreviews dataset not found at: '{AMAZONREVIEWS_PATH}'\n"
             "Please download the dataset from:\n"
             f"{AMAZONREVIEWS_URL}"
         )
         raise FileNotFoundError(msg)
 
-    # Load the datasets
-    dataset = []
-    with bz2.BZ2File(AMAZONREVIEWS_PATH[1]) as train_file:
-        dataset.extend([line.decode("utf-8") for line in train_file])
-
-    if merge:
-        with bz2.BZ2File(AMAZONREVIEWS_PATH[0]) as test_file:
-            dataset.extend([line.decode("utf-8") for line in test_file])
+    # Load the dataset
+    with bz2.BZ2File(AMAZONREVIEWS_PATH) as f:
+        dataset = [line.decode("utf-8") for line in f]
 
     # Split the data into labels and text
-    labels, texts = zip(*(line.split(" ", 1) for line in dataset))  # NOTE: Occasionally OOM
+    labels, texts = zip(*(line.split(" ", 1) for line in dataset))
 
     # Map sentiment values
     sentiments = [int(label.split("__label__")[1]) - 1 for label in labels]
@@ -270,7 +261,7 @@ def load_data(dataset: Literal["sentiment140", "amazonreviews", "imdb50k", "test
         case "sentiment140":
             return load_sentiment140(include_neutral=False)
         case "amazonreviews":
-            return load_amazonreviews(merge=True)
+            return load_amazonreviews()
         case "imdb50k":
             return load_imdb50k()
         case "test":

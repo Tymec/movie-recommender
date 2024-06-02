@@ -10,7 +10,7 @@ MODELS_DIR = Path(os.getenv("MODELS_DIR", "models"))
 SENTIMENT140_PATH = DATA_DIR / "sentiment140.csv"
 SENTIMENT140_URL = "https://www.kaggle.com/datasets/kazanova/sentiment140"
 
-AMAZONREVIEWS_PATH = (DATA_DIR / "amazonreviews.test.txt.bz2", DATA_DIR / "amazonreviews.train.txt.bz2")
+AMAZONREVIEWS_PATH = DATA_DIR / "amazonreviews.train.txt.bz2"
 AMAZONREVIEWS_URL = "https://www.kaggle.com/datasets/bittlingmayer/amazonreviews"
 
 IMDB50K_PATH = DATA_DIR / "imdb50k.csv"
