@@ -62,11 +62,6 @@ def train_model(
         random_state=seed,
     )
 
-    param_distributions = {
-        "classifier__C": np.logspace(-4, 4, 20),
-        "classifier__solver": ["liblinear", "saga"],
-    }
-
     model = Pipeline(
         [
             (
@@ -79,6 +74,8 @@ def train_model(
                     preprocessor=_identity,
                     lowercase=False,
                     token_pattern=None,
+                    min_df=0.1,
+                    max_df=0.9,
                 ),
             ),
             (
@@ -92,6 +89,11 @@ def train_model(
         memory=Memory(CACHE_DIR, verbose=0),
         verbose=verbose,
     )
+
+    param_distributions = {
+        "classifier__C": np.logspace(-4, 4, 20),
+        "classifier__solver": ["liblinear", "saga"],
+    }
 
     search = RandomizedSearchCV(
         model,
