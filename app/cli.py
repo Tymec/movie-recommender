@@ -136,28 +136,34 @@ def evaluate(
     from app.constants import CACHE_DIR
     from app.data import load_data, tokenize
     from app.model import evaluate_model
+    from app.utils import deserialize, serialize
 
     cached_data_path = CACHE_DIR / f"{dataset}_tokenized.pkl"
     use_cached_data = False
     if cached_data_path.exists():
         use_cached_data = click.confirm(f"Found existing tokenized data for '{dataset}'. Use it?", default=True)
 
+    click.echo("Loading dataset... ", nl=False)
+    text_data, label_data = load_data(dataset)
+    click.echo(DONE_STR)
+
     if use_cached_data:
         click.echo("Loading cached data... ", nl=False)
-        token_data, label_data = joblib.load(cached_data_path)
+        # token_data = joblib.load(cached_data_path)
+        token_data = deserialize(cached_data_path)
         click.echo(DONE_STR)
     else:
-        click.echo("Loading dataset... ", nl=False)
-        text_data, label_data = load_data(dataset)
-        click.echo(DONE_STR)
-
         click.echo("Tokenizing data... ", nl=False)
         token_data = tokenize(text_data, batch_size=batch_size, n_jobs=processes, show_progress=True)
-        joblib.dump((token_data, label_data), cached_data_path, compress=3)
         click.echo(DONE_STR)
 
-        del text_data
-        gc.collect()
+        click.echo("Caching tokenized data... ", nl=False)
+        # joblib.dump(token_data, cached_data_path, compress=3)
+        serialize(token_data, cached_data_path)
+        click.echo(DONE_STR)
+
+    del text_data
+    gc.collect()
 
     click.echo("Loading model... ", nl=False)
     model = joblib.load(model_path)
@@ -221,9 +227,9 @@ def evaluate(
     help="Overwrite the model file if it already exists",
 )
 @click.option(
-    "--skip-cache",
+    "--force-cache",
     is_flag=True,
-    help="Ignore cached tokenized data",
+    help="Always use the cached tokenized data (if available)",
 )
 @click.option(
     "--verbose",
@@ -238,7 +244,7 @@ def train(
     processes: int,
     seed: int,
     overwrite: bool,
-    skip_cache: bool,
+    force_cache: bool,
     verbose: bool,
 ) -> None:
     """Train the model on the provided dataset"""
@@ -249,6 +255,7 @@ def train(
     from app.constants import CACHE_DIR, MODELS_DIR
     from app.data import load_data, tokenize
     from app.model import train_model
+    from app.utils import deserialize, serialize
 
     model_path = MODELS_DIR / f"{dataset}_tfidf_ft-{max_features}.pkl"
     if model_path.exists() and not overwrite:
@@ -256,25 +263,34 @@ def train(
 
     cached_data_path = CACHE_DIR / f"{dataset}_tokenized.pkl"
     use_cached_data = False
-    if cached_data_path.exists() and not skip_cache:
-        use_cached_data = click.confirm(f"Found existing tokenized data for '{dataset}'. Use it?", default=True)
+
+    if cached_data_path.exists():
+        use_cached_data = force_cache or click.confirm(
+            f"Found existing tokenized data for '{dataset}'. Use it?",
+            default=True,
+        )
+
+    click.echo("Loading dataset... ", nl=False)
+    text_data, label_data = load_data(dataset)
+    click.echo(DONE_STR)
 
     if use_cached_data:
         click.echo("Loading cached data... ", nl=False)
-        token_data, label_data = joblib.load(cached_data_path)
+        # token_data = joblib.load(cached_data_path)
+        token_data = deserialize(cached_data_path)
         click.echo(DONE_STR)
     else:
-        click.echo("Loading dataset... ", nl=False)
-        text_data, label_data = load_data(dataset)
-        click.echo(DONE_STR)
-
         click.echo("Tokenizing data... ", nl=False)
         token_data = tokenize(text_data, batch_size=batch_size, n_jobs=processes, show_progress=True)
-        joblib.dump((token_data, label_data), cached_data_path, compress=3)
         click.echo(DONE_STR)
 
-        del text_data
-        gc.collect()
+        click.echo("Caching tokenized data... ", nl=False)
+        # joblib.dump(token_data, cached_data_path, compress=3)
+        serialize(token_data, cached_data_path)
+        click.echo(DONE_STR)
+
+    del text_data
+    gc.collect()
 
     click.echo("Training model... ")
     model, accuracy = train_model(
