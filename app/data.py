@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import bz2
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, Sequence
 
 import pandas as pd
 import spacy
@@ -25,17 +25,17 @@ __all__ = ["load_data", "tokenize"]
 
 
 try:
-    nlp = spacy.load("en_core_web_sm", disable=["tok2vec", "parser", "ner"])
+    nlp = spacy.load("en_core_web_sm")
 except OSError:
     print("Downloading spaCy model...")
 
     from spacy.cli import download as spacy_download
 
     spacy_download("en_core_web_sm")
-    nlp = spacy.load("en_core_web_sm", disable=["tok2vec", "parser", "ner"])
+    nlp = spacy.load("en_core_web_sm")
 
 
-def _lemmatize(doc: Doc, threshold: int = 2) -> list[str]:
+def _lemmatize(doc: Doc, threshold: int = 2) -> Sequence[str]:
     """Lemmatize the provided text using spaCy.
 
     Args:
@@ -43,27 +43,25 @@ def _lemmatize(doc: Doc, threshold: int = 2) -> list[str]:
         threshold: Minimum character length of tokens
 
     Returns:
-        Lemmatized text
+        Sequence of lemmatized tokens
     """
     return [
         token.lemma_.lower().strip()
         for token in doc
-        if not token.is_stop
-        and not token.is_punct
-        and not token.like_email
-        and not token.like_url
-        and not token.like_num
-        and not (len(token.lemma_) < threshold)
+        if not token.is_stop  # Ignore stop words
+        and not token.is_punct  # Ignore punctuation
+        and not token.is_alpha  # Ignore non-alphabetic tokens
+        and not (len(token.lemma_) < threshold)  # Ignore short tokens
     ]
 
 
 def tokenize(
-    text_data: list[str],
+    text_data: Sequence[str],
     batch_size: int = 512,
     n_jobs: int = 4,
     character_threshold: int = 2,
     show_progress: bool = True,
-) -> list[list[str]]:
+) -> Sequence[Sequence[str]]:
     """Tokenize the provided text using spaCy.
 
     Args:
@@ -76,15 +74,17 @@ def tokenize(
     Returns:
         Tokenized text data
     """
-    return [
-        _lemmatize(doc, character_threshold)
-        for doc in tqdm(
-            nlp.pipe(text_data, batch_size=batch_size, n_process=n_jobs),
-            total=len(text_data),
-            disable=not show_progress,
-            unit="doc",
-        )
-    ]
+    return pd.Series(
+        [
+            _lemmatize(doc, character_threshold)
+            for doc in tqdm(
+                nlp.pipe(text_data, batch_size=batch_size, n_process=n_jobs, disable=["parser", "ner", "tok2vec"]),
+                total=len(text_data),
+                disable=not show_progress,
+                unit="doc",
+            )
+        ],
+    )
 
 
 def load_sentiment140(include_neutral: bool = False) -> tuple[list[str], list[int]]:

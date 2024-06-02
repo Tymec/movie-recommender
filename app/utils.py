@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence
 
 import joblib
 from tqdm import tqdm
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 __all__ = ["serialize", "deserialize"]
 
 
-def serialize(data: list[list[str]], path: Path, max_size: int = 400) -> None:
+def serialize(data: Sequence[str], path: Path, max_size: int = 100000) -> None:
     """Serialize data to a file
 
     Args:
@@ -26,7 +26,7 @@ def serialize(data: list[list[str]], path: Path, max_size: int = 400) -> None:
             joblib.dump(chunk, f, compress=3)
 
 
-def deserialize(path: Path) -> list[list[str]]:
+def deserialize(path: Path) -> Sequence[str]:
     """Deserialize data from a file
 
     Args:
