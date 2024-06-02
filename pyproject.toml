@@ -13,6 +13,7 @@ click = "^8.1.7"
 spacy = { extras = ["cuda12x"], version = "^3.7.4" }
 gradio = "^4.26.0"
 wordcloud = "^1.9.3"
+emoji = "^2.12.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.1"
