@@ -104,29 +104,36 @@ def predict(model_path: Path, text: list[str]) -> None:
     type=click.IntRange(1, 50),
 )
 @click.option(
-    "--batch-size",
+    "--token-batch-size",
     default=512,
     help="Size of the batches used in tokenization",
     show_default=True,
 )
 @click.option(
-    "--processes",
+    "--token-jobs",
     default=4,
-    help="Number of parallel jobs to run",
+    help="Number of parallel jobs to run for tokenization",
     show_default=True,
 )
 @click.option(
-    "--verbose",
+    "--eval-jobs",
+    default=1,
+    help="Number of parallel jobs to run for evaluation",
+    show_default=True,
+)
+@click.option(
+    "--force-cache",
     is_flag=True,
-    help="Show verbose output",
+    help="Always use the cached tokenized data (if available)",
 )
 def evaluate(
     dataset: Literal["test", "sentiment140", "amazonreviews", "imdb50k"],
     model_path: Path,
     cv: int,
-    batch_size: int,
-    processes: int,
-    verbose: bool,
+    token_batch_size: int,
+    token_jobs: int,
+    eval_jobs: int,
+    force_cache: bool,
 ) -> None:
     """Evaluate the model on the the specified dataset"""
     import gc
@@ -141,7 +148,10 @@ def evaluate(
     cached_data_path = CACHE_DIR / f"{dataset}_tokenized.pkl"
     use_cached_data = False
     if cached_data_path.exists():
-        use_cached_data = click.confirm(f"Found existing tokenized data for '{dataset}'. Use it?", default=True)
+        use_cached_data = force_cache or click.confirm(
+            f"Found existing tokenized data for '{dataset}'. Use it?",
+            default=True,
+        )
 
     click.echo("Loading dataset... ", nl=False)
     text_data, label_data = load_data(dataset)
@@ -149,16 +159,14 @@ def evaluate(
 
     if use_cached_data:
         click.echo("Loading cached data... ", nl=False)
-        # token_data = joblib.load(cached_data_path)
         token_data = deserialize(cached_data_path)
         click.echo(DONE_STR)
     else:
         click.echo("Tokenizing data... ", nl=False)
-        token_data = tokenize(text_data, batch_size=batch_size, n_jobs=processes, show_progress=True)
+        token_data = tokenize(text_data, batch_size=token_batch_size, n_jobs=token_jobs, show_progress=True)
         click.echo(DONE_STR)
 
         click.echo("Caching tokenized data... ", nl=False)
-        # joblib.dump(token_data, cached_data_path, compress=3)
         serialize(token_data, cached_data_path)
         click.echo(DONE_STR)
 
@@ -175,8 +183,7 @@ def evaluate(
         token_data,
         label_data,
         folds=cv,
-        n_jobs=processes,
-        verbose=verbose,
+        n_jobs=eval_jobs,
     )
     click.secho(f"{acc_mean:.2%} ± {acc_std:.2%}", fg="blue")
 
@@ -189,9 +196,15 @@ def evaluate(
     type=click.Choice(["sentiment140", "amazonreviews", "imdb50k"]),
 )
 @click.option(
+    "--vectorizer",
+    default="tfidf",
+    help="Vectorizer to use",
+    type=click.Choice(["tfidf", "count", "hashing"]),
+)
+@click.option(
     "--max-features",
     default=20000,
-    help="Maximum number of features",
+    help="Maximum number of features (should be greater than 2^15 when using hashing vectorizer)",
     show_default=True,
     type=click.IntRange(1, None),
 )
@@ -203,15 +216,21 @@ def evaluate(
     type=click.IntRange(1, 50),
 )
 @click.option(
-    "--batch-size",
+    "--token-batch-size",
     default=512,
     help="Size of the batches used in tokenization",
     show_default=True,
 )
 @click.option(
-    "--processes",
+    "--token-jobs",
     default=4,
-    help="Number of parallel jobs to run",
+    help="Number of parallel jobs to run for tokenization",
+    show_default=True,
+)
+@click.option(
+    "--train-jobs",
+    default=1,
+    help="Number of parallel jobs to run for training",
     show_default=True,
 )
 @click.option(
@@ -231,33 +250,29 @@ def evaluate(
     is_flag=True,
     help="Always use the cached tokenized data (if available)",
 )
-@click.option(
-    "--verbose",
-    is_flag=True,
-    help="Show verbose output",
-)
 def train(
     dataset: Literal["sentiment140", "amazonreviews", "imdb50k"],
+    vectorizer: Literal["tfidf", "count", "hashing"],
     max_features: int,
     cv: int,
-    batch_size: int,
-    processes: int,
+    token_batch_size: int,
+    token_jobs: int,
+    train_jobs: int,
     seed: int,
     overwrite: bool,
     force_cache: bool,
-    verbose: bool,
 ) -> None:
     """Train the model on the provided dataset"""
     import gc
 
     import joblib
 
-    from app.constants import CACHE_DIR, MODELS_DIR
+    from app.constants import CACHE_DIR, MODEL_DIR
     from app.data import load_data, tokenize
     from app.model import train_model
     from app.utils import deserialize, serialize
 
-    model_path = MODELS_DIR / f"{dataset}_tfidf_ft-{max_features}.pkl"
+    model_path = MODEL_DIR / f"{dataset}_{vectorizer}_ft{max_features}.pkl"
     if model_path.exists() and not overwrite:
         click.confirm(f"Model file '{model_path}' already exists. Overwrite?", abort=True)
 
@@ -276,16 +291,14 @@ def train(
 
     if use_cached_data:
         click.echo("Loading cached data... ", nl=False)
-        # token_data = joblib.load(cached_data_path)
         token_data = deserialize(cached_data_path)
         click.echo(DONE_STR)
     else:
         click.echo("Tokenizing data... ", nl=False)
-        token_data = tokenize(text_data, batch_size=batch_size, n_jobs=processes, show_progress=True)
+        token_data = tokenize(text_data, batch_size=token_batch_size, n_jobs=token_jobs, show_progress=True)
         click.echo(DONE_STR)
 
         click.echo("Caching tokenized data... ", nl=False)
-        # joblib.dump(token_data, cached_data_path, compress=3)
         serialize(token_data, cached_data_path)
         click.echo(DONE_STR)
 
@@ -296,11 +309,11 @@ def train(
     model, accuracy = train_model(
         token_data,
         label_data,
+        vectorizer=vectorizer,
         max_features=max_features,
         folds=cv,
-        n_jobs=processes,
+        n_jobs=train_jobs,
         seed=seed,
-        verbose=verbose,
     )
     click.echo("Model accuracy: ", nl=False)
     click.secho(f"{accuracy:.2%}", fg="blue")
