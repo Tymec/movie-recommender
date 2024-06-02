@@ -160,8 +160,10 @@ The following environment variables can be set to customize the behavior of the 
 
 
 ### Architecture
-The input text is first preprocessed and tokenized using `spaCy` where:
-- Stop words, punctuation and any non-alphabetic words are removed
+The input text is first preprocessed and tokenized using `re` and `spaCy` where:
+- The text is cleaned up by removing any HTML tags and converting emojis to text
+- Stop words and punctuation are removed
+- URLs, email addresses and numbers are removed
 - Words are converted to lowercase
 - Lemmatization is performed (words are converted to their base form based on the surrounding context)
 
