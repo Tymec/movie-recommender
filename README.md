@@ -209,16 +209,11 @@ graph LR
 
 ### Pre-trained Models
 The following pre-trained models are available for use:
-| Dataset | Vectorizer | Features | Classifier | Accuracy | Model |
-| --- | --- | --- | --- | --- | --- |
-| `sentiment140` | `tfidf` | `LinearRegression` | 20 000 | ❌ | [Here](#) |
-| `imdb50k` | `tfidf` | `LinearRegression` | 20 000 | ❌ | [Here](#) |
-| `amazonreviews` | `tfidf` | `LinearRegression` | 20 000 | ❌ | [Here](#) |
-
-The accuracy of the models is based on the cross-validation score using the `test` dataset and `5` folds.
-
-#### Note
-Due to the size of the `amazonreviews` dataset, it was not possible to train a model with a vectorizer other than `hashing`.
+| Dataset | Vectorizer | Classifier | Features | Accuracy on test | Accuracy on self | Model |
+| --- | --- | --- | --- | --- | --- | --- |
+| `imdb50k` | `tfidf` | `LinearRegression` | 20 000 | 59.59% ± 0.73% | 74.08% ± 0.14% | [Here](models/imdb50k_tfidf_ft20000.pkl) |
+| `sentiment140` | `tfidf` | `LinearRegression` | 20 000 | ❌ | ❌ | [Here](models/sentiment140_tfidf_ft20000.pkl) |
+| `amazonreviews` | `hashing` | `LinearRegression` | 1 048 576 | ❌ | ❌ | [Here](models/amazonreviews_hashing_ft1048576.pkl) |
 
 
 ## License
