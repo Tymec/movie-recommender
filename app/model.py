@@ -36,7 +36,6 @@ def _identity(x: list[str]) -> list[str]:
 def _get_vectorizer(
     name: Literal["tfidf", "count", "hashing"],
     n_features: int,
-    df: tuple[float, float] = (1.0, 1.0),
     ngram: tuple[int, int] = (1, 2),
 ) -> TransformerMixin:
     """Get the appropriate vectorizer.
@@ -44,7 +43,6 @@ def _get_vectorizer(
     Args:
         name: Type of vectorizer
         n_features: Maximum number of features
-        df: Document frequency range [min_df, max_df] (ignored for HashingVectorizer)
         ngram: N-gram range [min_n, max_n]
 
     Returns:
@@ -66,15 +64,11 @@ def _get_vectorizer(
         case "tfidf":
             return TfidfVectorizer(
                 max_features=n_features,
-                min_df=df[0],
-                max_df=df[1],
                 **shared_params,
             )
         case "count":
             return CountVectorizer(
                 max_features=n_features,
-                min_df=df[0],
-                max_df=df[1],
                 **shared_params,
             )
         case "hashing":
