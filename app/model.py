@@ -36,7 +36,7 @@ def _identity(x: list[str]) -> list[str]:
 def _get_vectorizer(
     name: Literal["tfidf", "count", "hashing"],
     n_features: int,
-    df: tuple[float, float] = (0.1, 1.0),
+    df: tuple[float, float] = (1.0, 1.0),
     ngram: tuple[int, int] = (1, 2),
 ) -> TransformerMixin:
     """Get the appropriate vectorizer.
@@ -167,7 +167,7 @@ def train_model(
             n_jobs=n_jobs,
             # verbose=2,
             scoring="accuracy",
-            n_iter=7,
+            n_iter=10,
         )
 
         pbar.set_description(f"Searching for {clf.__class__.__name__}")
