@@ -7,6 +7,8 @@ CACHE_DIR = Path(os.getenv("CACHE_DIR", ".cache"))
 DATA_DIR = Path(os.getenv("DATA_DIR", "data"))
 MODEL_DIR = Path(os.getenv("MODEL_DIR", "models"))
 
+TOKENIZER_CACHE_PATH = CACHE_DIR / "tokenizer"
+
 SENTIMENT140_PATH = DATA_DIR / "sentiment140.csv"
 SENTIMENT140_URL = "https://www.kaggle.com/datasets/kazanova/sentiment140"
 
@@ -25,3 +27,5 @@ SLANGMAP_URL = "Https://www.kaggle.com/code/nmaguette/up-to-date-list-of-slangs-
 CACHE_DIR.mkdir(exist_ok=True, parents=True)
 DATA_DIR.mkdir(exist_ok=True, parents=True)
 MODEL_DIR.mkdir(exist_ok=True, parents=True)
+
+TOKENIZER_CACHE_PATH.mkdir(exist_ok=True, parents=True)

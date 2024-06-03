@@ -139,14 +139,16 @@ def evaluate(
     import gc
 
     import joblib
+    import pandas as pd
 
-    from app.constants import CACHE_DIR
+    from app.constants import TOKENIZER_CACHE_PATH
     from app.data import load_data, tokenize
     from app.model import evaluate_model
     from app.utils import deserialize, serialize
 
-    cached_data_path = CACHE_DIR / f"{dataset}_tokenized.pkl"
+    cached_data_path = TOKENIZER_CACHE_PATH / f"{dataset}_tokenized.pkl"
     use_cached_data = False
+
     if cached_data_path.exists():
         use_cached_data = force_cache or click.confirm(
             f"Found existing tokenized data for '{dataset}'. Use it?",
@@ -159,19 +161,21 @@ def evaluate(
 
     if use_cached_data:
         click.echo("Loading cached data... ", nl=False)
-        token_data = deserialize(cached_data_path)
+        token_data = pd.Series(deserialize(cached_data_path))
         click.echo(DONE_STR)
     else:
-        click.echo("Tokenizing data... ", nl=False)
+        click.echo("Tokenizing data... ")
         token_data = tokenize(text_data, batch_size=token_batch_size, n_jobs=token_jobs, show_progress=True)
-        click.echo(DONE_STR)
 
-        click.echo("Caching tokenized data... ", nl=False)
-        serialize(token_data, cached_data_path)
-        click.echo(DONE_STR)
+        click.echo("Caching tokenized data... ")
+        serialize(token_data, cached_data_path, show_progress=True)
 
     del text_data
     gc.collect()
+
+    click.echo("Size of vocabulary: ", nl=False)
+    vocab = token_data.explode().value_counts()
+    click.secho(str(len(vocab)), fg="blue")
 
     click.echo("Loading model... ", nl=False)
     model = joblib.load(model_path)
@@ -266,8 +270,9 @@ def train(
     import gc
 
     import joblib
+    import pandas as pd
 
-    from app.constants import CACHE_DIR, MODEL_DIR
+    from app.constants import MODEL_DIR, TOKENIZER_CACHE_PATH
     from app.data import load_data, tokenize
     from app.model import train_model
     from app.utils import deserialize, serialize
@@ -276,7 +281,7 @@ def train(
     if model_path.exists() and not overwrite:
         click.confirm(f"Model file '{model_path}' already exists. Overwrite?", abort=True)
 
-    cached_data_path = CACHE_DIR / f"{dataset}_tokenized.pkl"
+    cached_data_path = TOKENIZER_CACHE_PATH / f"{dataset}_tokenized.pkl"
     use_cached_data = False
 
     if cached_data_path.exists():
@@ -291,19 +296,21 @@ def train(
 
     if use_cached_data:
         click.echo("Loading cached data... ", nl=False)
-        token_data = deserialize(cached_data_path)
+        token_data = pd.Series(deserialize(cached_data_path))
         click.echo(DONE_STR)
     else:
-        click.echo("Tokenizing data... ", nl=False)
+        click.echo("Tokenizing data... ")
         token_data = tokenize(text_data, batch_size=token_batch_size, n_jobs=token_jobs, show_progress=True)
-        click.echo(DONE_STR)
 
-        click.echo("Caching tokenized data... ", nl=False)
-        serialize(token_data, cached_data_path)
-        click.echo(DONE_STR)
+        click.echo("Caching tokenized data... ")
+        serialize(token_data, cached_data_path, show_progress=True)
 
     del text_data
     gc.collect()
+
+    click.echo("Size of vocabulary: ", nl=False)
+    vocab = token_data.explode().value_counts()
+    click.secho(str(len(vocab)), fg="blue")
 
     click.echo("Training model... ")
     model, accuracy = train_model(

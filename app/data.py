@@ -89,7 +89,7 @@ def _clean(text: str) -> str:
 
     # Remove acronyms and abbreviations
     # text = re.sub(r"(?:[a-z]\.){2,}", "", text)
-    text = re.sub(r"(?:[a-z]\.?)(?:[a-z]\.)", "", text)
+    text = re.sub(r"\b(?:[a-z]\.?)(?:[a-z]\.)\b", "", text)
 
     # Remove honorifics
     text = re.sub(r"\b(?:mr|mrs|ms|dr|prof|sr|jr)\.?\b", "", text)
@@ -118,7 +118,7 @@ def _clean(text: str) -> str:
     return text.strip()
 
 
-def _lemmatize(doc: Doc, threshold: int = 2) -> Sequence[str]:
+def _lemmatize(doc: Doc, threshold: int = 3) -> Sequence[str]:
     """Lemmatize the provided text using spaCy.
 
     Args:
@@ -136,8 +136,8 @@ def _lemmatize(doc: Doc, threshold: int = 2) -> Sequence[str]:
         and not token.like_email  # Ignore email addresses
         and not token.like_url  # Ignore URLs
         and not token.like_num  # Ignore numbers
-        and not token.is_alpha  # Ignore non-alphabetic tokens
-        and not (len(tok := token.lemma_.lower().strip()) < threshold)  # Ignore short tokens
+        and token.is_alpha  # Ignore non-alphabetic tokens
+        and (len(tok := token.lemma_.lower().strip()) >= threshold)  # Ignore short tokens
     ]
 
 
@@ -145,7 +145,7 @@ def tokenize(
     text_data: Sequence[str],
     batch_size: int = 512,
     n_jobs: int = 4,
-    character_threshold: int = 2,
+    character_threshold: int = 3,
     show_progress: bool = True,
 ) -> Sequence[Sequence[str]]:
     """Tokenize the provided text using spaCy.
@@ -174,7 +174,7 @@ def tokenize(
         [
             _lemmatize(doc, character_threshold)
             for doc in tqdm(
-                nlp.pipe(text_data, batch_size=batch_size, n_process=n_jobs, disable=["parser", "ner", "tok2vec"]),
+                nlp.pipe(text_data, batch_size=batch_size, n_process=n_jobs, disable=["parser", "ner"]),
                 total=len(text_data),
                 desc="Lemmatization",
                 unit="doc",

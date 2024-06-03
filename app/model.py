@@ -10,7 +10,6 @@ from sklearn.feature_extraction.text import CountVectorizer, HashingVectorizer, 
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import RandomizedSearchCV, cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.svm import LinearSVC
 from tqdm import tqdm
 
 from app.constants import CACHE_DIR
@@ -132,7 +131,7 @@ def train_model(
     vectorizer = _get_vectorizer(vectorizer, max_features)
     classifiers = [
         (LogisticRegression(max_iter=1000, random_state=rs), {"C": np.logspace(-4, 4, 20)}),
-        (LinearSVC(max_iter=10000, random_state=rs), {"C": np.logspace(-4, 4, 20)}),
+        # (LinearSVC(max_iter=10000, random_state=rs), {"C": np.logspace(-4, 4, 20)}),
         # (KNeighborsClassifier(), {"n_neighbors": np.arange(1, 10)}),
         # (RandomForestClassifier(random_state=rs), {"n_estimators": np.arange(50, 500, 50)}),
         # (
