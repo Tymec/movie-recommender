@@ -212,8 +212,8 @@ The following pre-trained models are available for use:
 | Dataset | Vectorizer | Classifier | Features | Accuracy on test | Accuracy on self | Model |
 | --- | --- | --- | --- | --- | --- | --- |
 | `imdb50k` | `tfidf` | `LinearRegression` | 20 000 | 59.59% ± 0.73% | 74.08% ± 0.14% | [Here](models/imdb50k_tfidf_ft20000.pkl) |
-| `sentiment140` | `tfidf` | `LinearRegression` | 20 000 | ❌ | ❌ | [Here](models/sentiment140_tfidf_ft20000.pkl) |
-| `amazonreviews` | `hashing` | `LinearRegression` | 1 048 576 | ❌ | ❌ | [Here](models/amazonreviews_hashing_ft1048576.pkl) |
+| `sentiment140` | `tfidf` | `LinearRegression` | 20 000 | 52.81% ± 0.03% | ❌ | [Here](models/sentiment140_tfidf_ft20000.pkl) |
+| `amazonreviews` | `tfidf` | `LinearRegression` | 20 000 | ❌ | ❌ | [Here](models/amazonreviews_tfidf_ft1048576.pkl) |
 
 
 ## License

@@ -36,7 +36,7 @@ def _identity(x: list[str]) -> list[str]:
 def _get_vectorizer(
     name: Literal["tfidf", "count", "hashing"],
     n_features: int,
-    df: tuple[float, float] = (0.1, 0.9),
+    df: tuple[float, float] = (0.1, 1.0),
     ngram: tuple[int, int] = (1, 2),
 ) -> TransformerMixin:
     """Get the appropriate vectorizer.
