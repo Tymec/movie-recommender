@@ -194,6 +194,6 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,python
 
 # Custom
-data/
-cache/
+data/*
+!data/slang.json
 flagged/

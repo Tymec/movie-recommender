@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import bz2
+import json
+import re
+from functools import lru_cache
 from typing import TYPE_CHECKING, Literal, Sequence
 
+import emoji
 import pandas as pd
 import spacy
 from tqdm import tqdm
@@ -14,11 +18,15 @@ from app.constants import (
     IMDB50K_URL,
     SENTIMENT140_PATH,
     SENTIMENT140_URL,
+    SLANGMAP_PATH,
+    SLANGMAP_URL,
     TEST_DATASET_PATH,
     TEST_DATASET_URL,
 )
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from spacy.tokens import Doc
 
 __all__ = ["load_data", "tokenize"]
@@ -35,6 +43,81 @@ except OSError:
     nlp = spacy.load("en_core_web_sm")
 
 
+@lru_cache(maxsize=1)
+def slang() -> tuple[Pattern, dict[str, str]]:
+    """Compile a re pattern for slang terms.
+
+    Returns:
+        Slang pattern and mapping
+
+    Raises:
+        FileNotFoundError: If the file is not found
+    """
+    if not SLANGMAP_PATH.exists():
+        # msg = f"Missing slang mapping file: {SLANG_PATH}"
+        msg = (
+            f"Slang mapping file not found at: '{SLANGMAP_PATH}'\n"
+            "Please download the file from:\n"
+            f"{SLANGMAP_URL}"
+        )  # fmt: off
+        raise FileNotFoundError(msg)
+
+    with SLANGMAP_PATH.open() as f:
+        mapping = json.load(f)
+
+    return re.compile(r"\b(" + "|".join(map(re.escape, mapping.keys())) + r")\b"), mapping
+
+
+def _clean(text: str) -> str:
+    """Perform basic text cleaning.
+
+    Args:
+        text: Text to clean
+
+    Returns:
+        Cleaned text
+    """
+    # Make text lowercase
+    text = text.lower()
+
+    # Remove HTML tags
+    text = re.sub(r"<[^>]*>", "", text)
+
+    # Map slang terms
+    slang_pattern, slang_mapping = slang()
+    text = slang_pattern.sub(lambda x: slang_mapping[x.group()], text)
+
+    # Remove acronyms and abbreviations
+    # text = re.sub(r"(?:[a-z]\.){2,}", "", text)
+    text = re.sub(r"(?:[a-z]\.?)(?:[a-z]\.)", "", text)
+
+    # Remove honorifics
+    text = re.sub(r"\b(?:mr|mrs|ms|dr|prof|sr|jr)\.?\b", "", text)
+
+    # Remove year abbreviations
+    text = re.sub(r"\b(?:\d{3}0|\d0)s?\b", "", text)
+
+    # Remove hashtags
+    text = re.sub(r"#[^\s]+", "", text)
+
+    # Replace mentions with a generic tag
+    text = re.sub(r"@[^\s]+", "user", text)
+
+    # Replace X/Y with X or Y
+    text = re.sub(r"\b([a-z]+)[//]([a-z]+)\b", r"\1 or \2", text)
+
+    # Convert emojis to text
+    text = emoji.demojize(text, delimiters=("emoji_", ""))
+
+    # Remove special characters
+    text = re.sub(r"[^a-z0-9\s]", "", text)
+
+    # EXTRA: imdb50k specific cleaning
+    text = re.sub(r"mst3k", "", text)  # Very common acronym for Mystery Science Theater 3000
+
+    return text.strip()
+
+
 def _lemmatize(doc: Doc, threshold: int = 2) -> Sequence[str]:
     """Lemmatize the provided text using spaCy.
 
@@ -46,12 +129,15 @@ def _lemmatize(doc: Doc, threshold: int = 2) -> Sequence[str]:
         Sequence of lemmatized tokens
     """
     return [
-        token.lemma_.lower().strip()
+        tok
         for token in doc
         if not token.is_stop  # Ignore stop words
         and not token.is_punct  # Ignore punctuation
+        and not token.like_email  # Ignore email addresses
+        and not token.like_url  # Ignore URLs
+        and not token.like_num  # Ignore numbers
         and not token.is_alpha  # Ignore non-alphabetic tokens
-        and not (len(token.lemma_) < threshold)  # Ignore short tokens
+        and not (len(tok := token.lemma_.lower().strip()) < threshold)  # Ignore short tokens
     ]
 
 
@@ -74,14 +160,25 @@ def tokenize(
     Returns:
         Tokenized text data
     """
+    text_data = [
+        _clean(text)
+        for text in tqdm(
+            text_data,
+            desc="Cleaning",
+            unit="doc",
+            disable=not show_progress,
+        )
+    ]
+
     return pd.Series(
         [
             _lemmatize(doc, character_threshold)
             for doc in tqdm(
                 nlp.pipe(text_data, batch_size=batch_size, n_process=n_jobs, disable=["parser", "ner", "tok2vec"]),
                 total=len(text_data),
-                disable=not show_progress,
+                desc="Lemmatization",
                 unit="doc",
+                disable=not show_progress,
             )
         ],
     )

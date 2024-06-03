@@ -19,6 +19,9 @@ IMDB50K_URL = "https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-5
 TEST_DATASET_PATH = DATA_DIR / "test.csv"
 TEST_DATASET_URL = "https://huggingface.co/datasets/Sp1786/multiclass-sentiment-analysis-dataset"
 
+SLANGMAP_PATH = DATA_DIR / "slang.json"
+SLANGMAP_URL = "Https://www.kaggle.com/code/nmaguette/up-to-date-list-of-slangs-for-text-preprocessing"
+
 CACHE_DIR.mkdir(exist_ok=True, parents=True)
 DATA_DIR.mkdir(exist_ok=True, parents=True)
 MODEL_DIR.mkdir(exist_ok=True, parents=True)

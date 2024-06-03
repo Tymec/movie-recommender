@@ -5,6 +5,7 @@
 # Hide from GitHub's language detection
 *.yaml              linguist-documentation
 *.toml              linguist-documentation
+*.json              linguist-documentation
 
 # Remove assets from github statistics
 *.yaml              linguist-vendored
@@ -12,10 +13,11 @@
 
 # Set the language for these files to ensure GitHub doesn't show the comments as errors
 .vscode/*.json      linguist-language=JSON5
+data/*              binary
 
 # Do not try and merge these files
 poetry.lock         -diff
-*.ipynb             -diff
+*.pkl               -diff
 
 # LFS
 models/**           filter=lfs diff=lfs merge=lfs -text

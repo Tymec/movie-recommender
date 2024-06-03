@@ -138,6 +138,9 @@ python -m app evaluate --help
 | imdb50k | `data/imdb50k.csv` | | [IMDB Movie Reviews](https://www.kaggle.com/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews) |
 | test | `data/test.csv` | required for `evaluate` | [Multiclass Sentiment Analysis](https://huggingface.co/datasets/Sp1786/multiclass-sentiment-analysis-dataset) |
 
+#### Used for text preprocessing
+- [Slang Map](Https://www.kaggle.com/code/nmaguette/up-to-date-list-of-slangs-for-text-preprocessing)
+
 
 ### Vectorizers
 | Option | Description | When to Use |
