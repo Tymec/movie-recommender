@@ -211,10 +211,9 @@ graph LR
 The following pre-trained models are available for use:
 | Dataset | Vectorizer | Features | Classifier | Accuracy | Model |
 | --- | --- | --- | --- | --- | --- |
-| `sentiment140` | `tfidf` | `LinearRegression` | 20 000 | ? | [Here](models/sentiment140_tfidf_ft-20000.pkl) |
-| `imdb50k` | `tfidf` | `LinearRegression` | 20 000 | ? | [Here](models/imdb50k_tfidf_ft-20000.pkl) |
-| `imdb50k` | `tfidf` | `LinearRegression` | 800 | ? | [Here](models/imdb50k_tfidf_ft-800.pkl) |
-| `imdb50k` | `hashing` | `LinearRegression` | 1 048 576 | 55.65% ± 1.07% | [Here](models/imdb50k_hashing_ft1048576.pkl) |
+| `sentiment140` | `tfidf` | `LinearRegression` | 20 000 | ❌ | [Here](#) |
+| `imdb50k` | `tfidf` | `LinearRegression` | 20 000 | ❌ | [Here](#) |
+| `amazonreviews` | `tfidf` | `LinearRegression` | 20 000 | ❌ | [Here](#) |
 
 The accuracy of the models is based on the cross-validation score using the `test` dataset and `5` folds.
 
