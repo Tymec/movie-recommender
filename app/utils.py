@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 __all__ = ["serialize", "deserialize"]
 
 
-def serialize(data: Sequence[str], path: Path, max_size: int = 100000, show_progress: bool = False) -> None:
+def serialize(data: Sequence[str | int], path: Path, max_size: int = 100000, show_progress: bool = False) -> None:
     """Serialize data to a file
 
     Args:
@@ -20,7 +20,6 @@ def serialize(data: Sequence[str], path: Path, max_size: int = 100000, show_prog
         max_size: The maximum size a chunk can be (in elements)
         show_progress: Whether to show a progress bar
     """
-    # first file is path, next chunks have ".1", ".2", etc. appended
     for i, chunk in enumerate(
         tqdm(
             [data[i : i + max_size] for i in range(0, len(data), max_size)],
@@ -33,7 +32,7 @@ def serialize(data: Sequence[str], path: Path, max_size: int = 100000, show_prog
             joblib.dump(chunk, f, compress=3)
 
 
-def deserialize(path: Path) -> Sequence[str]:
+def deserialize(path: Path) -> Sequence[str | int]:
     """Deserialize data from a file
 
     Args:

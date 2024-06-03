@@ -146,32 +146,35 @@ def evaluate(
     from app.model import evaluate_model
     from app.utils import deserialize, serialize
 
-    cached_data_path = TOKENIZER_CACHE_PATH / f"{dataset}_tokenized.pkl"
+    token_cache_path = TOKENIZER_CACHE_PATH / f"{dataset}_tokenized.pkl"
+    label_cache_path = TOKENIZER_CACHE_PATH / f"{dataset}_labels.pkl"
     use_cached_data = False
 
-    if cached_data_path.exists():
+    if token_cache_path.exists():
         use_cached_data = force_cache or click.confirm(
             f"Found existing tokenized data for '{dataset}'. Use it?",
             default=True,
         )
 
-    click.echo("Loading dataset... ", nl=False)
-    text_data, label_data = load_data(dataset)
-    click.echo(DONE_STR)
-
     if use_cached_data:
         click.echo("Loading cached data... ", nl=False)
-        token_data = pd.Series(deserialize(cached_data_path))
+        token_data = pd.Series(deserialize(token_cache_path))
+        label_data = joblib.load(label_cache_path)
         click.echo(DONE_STR)
     else:
+        click.echo("Loading dataset... ", nl=False)
+        text_data, label_data = load_data(dataset)
+        click.echo(DONE_STR)
+
         click.echo("Tokenizing data... ")
         token_data = tokenize(text_data, batch_size=token_batch_size, n_jobs=token_jobs, show_progress=True)
 
         click.echo("Caching tokenized data... ")
-        serialize(token_data, cached_data_path, show_progress=True)
+        serialize(token_data, token_cache_path, show_progress=True)
+        joblib.dump(label_data, label_cache_path, compress=3)
 
-    del text_data
-    gc.collect()
+        del text_data
+        gc.collect()
 
     click.echo("Size of vocabulary: ", nl=False)
     vocab = token_data.explode().value_counts()
@@ -281,32 +284,35 @@ def train(
     if model_path.exists() and not overwrite:
         click.confirm(f"Model file '{model_path}' already exists. Overwrite?", abort=True)
 
-    cached_data_path = TOKENIZER_CACHE_PATH / f"{dataset}_tokenized.pkl"
+    token_cache_path = TOKENIZER_CACHE_PATH / f"{dataset}_tokenized.pkl"
+    label_cache_path = TOKENIZER_CACHE_PATH / f"{dataset}_labels.pkl"
     use_cached_data = False
 
-    if cached_data_path.exists():
+    if token_cache_path.exists():
         use_cached_data = force_cache or click.confirm(
             f"Found existing tokenized data for '{dataset}'. Use it?",
             default=True,
         )
 
-    click.echo("Loading dataset... ", nl=False)
-    text_data, label_data = load_data(dataset)
-    click.echo(DONE_STR)
-
     if use_cached_data:
         click.echo("Loading cached data... ", nl=False)
-        token_data = pd.Series(deserialize(cached_data_path))
+        token_data = pd.Series(deserialize(token_cache_path))
+        label_data = joblib.load(label_cache_path)
         click.echo(DONE_STR)
     else:
+        click.echo("Loading dataset... ", nl=False)
+        text_data, label_data = load_data(dataset)
+        click.echo(DONE_STR)
+
         click.echo("Tokenizing data... ")
         token_data = tokenize(text_data, batch_size=token_batch_size, n_jobs=token_jobs, show_progress=True)
 
         click.echo("Caching tokenized data... ")
-        serialize(token_data, cached_data_path, show_progress=True)
+        serialize(token_data, token_cache_path, show_progress=True)
+        joblib.dump(label_data, label_cache_path, compress=3)
 
-    del text_data
-    gc.collect()
+        del text_data
+        gc.collect()
 
     click.echo("Size of vocabulary: ", nl=False)
     vocab = token_data.explode().value_counts()
