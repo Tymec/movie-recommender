@@ -333,8 +333,8 @@ def load_test(include_neutral: bool = False) -> tuple[list[str], list[int]]:
     data["label"] = data["label"].map(
         {
             0: 0,  # Negative
-            1: 1,  # Neutral
-            2: 2,  # Positive
+            1: 2,  # Neutral
+            2: 1,  # Positive
         },
     )
 
