@@ -213,8 +213,7 @@ The following pre-trained models are available for use:
 | --- | --- | --- | --- | --- | --- | --- |
 | `imdb50k` | `tfidf` | `LinearRegression` | 20 000 | 83.24% ± 0.99% | 89.24% ± 0.13% | [Here](models/imdb50k_tfidf_ft20000.pkl) |
 | `sentiment140` | `tfidf` | `LinearRegression` | 20 000 | 83.24% ± 0.99% | 77.32% ± 0.28% | [Here](models/sentiment140_tfidf_ft20000.pkl) |
-| `amazonreviews` | `tfidf` | `LinearRegression` | 20 000 | ❌ | ❌ | [Here](models/amazonreviews_tfidf_ft1048576.pkl) |
-
+| `amazonreviews` | `tfidf` | `LinearRegression` | 20 000 | 82.17% ± 0.85% | ❌ | [Here](models/amazonreviews_tfidf_ft20000.pkl) |
 
 ## License
 Distributed under the MIT License. See [LICENSE](LICENSE) for more information.

@@ -10,7 +10,6 @@ from sklearn.feature_extraction.text import CountVectorizer, HashingVectorizer, 
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import RandomizedSearchCV, cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
-from tqdm import tqdm
 
 from app.constants import CACHE_DIR
 from app.data import tokenize
@@ -36,7 +35,7 @@ def _identity(x: list[str]) -> list[str]:
 def _get_vectorizer(
     name: Literal["tfidf", "count", "hashing"],
     n_features: int,
-    min_df: float = 0.1,
+    min_df: int = 5,
     ngram: tuple[int, int] = (1, 2),
 ) -> TransformerMixin:
     """Get the appropriate vectorizer.
@@ -96,7 +95,7 @@ def train_model(
     label_data: list[int],
     vectorizer: Literal["tfidf", "count", "hashing"],
     max_features: int,
-    min_df: float = 0.1,
+    min_df: int = 5,
     folds: int = 5,
     n_jobs: int = 4,
     seed: int = 42,
@@ -129,66 +128,33 @@ def train_model(
     )
 
     vectorizer = _get_vectorizer(vectorizer, max_features, min_df)
-    classifiers = [
-        (LogisticRegression(max_iter=1000, random_state=rs), {"C": np.logspace(-4, 4, 20)}),
-        # (LinearSVC(max_iter=10000, random_state=rs), {"C": np.logspace(-4, 4, 20)}),
-        # (KNeighborsClassifier(), {"n_neighbors": np.arange(1, 10)}),
-        # (RandomForestClassifier(random_state=rs), {"n_estimators": np.arange(50, 500, 50)}),
-        # (
-        #     VotingClassifier(
-        #         estimators=[
-        #             ("lr", LogisticRegression(max_iter=1000, random_state=rs)),
-        #             ("knn", KNeighborsClassifier()),
-        #             ("rf", RandomForestClassifier(random_state=rs)),
-        #         ],
-        #     ),
-        #     {
-        #         "lr__C": np.logspace(-4, 4, 20),
-        #         "knn__n_neighbors": np.arange(1, 10),
-        #         "rf__n_estimators": np.arange(50, 500, 50),
-        #     },
-        # ),
-    ]
+    classifier = LogisticRegression(max_iter=1000, random_state=rs)
+    param_dist = {"classifier__C": np.logspace(-4, 4, 20)}
 
-    models = []
-    for clf, param_dist in (pbar := tqdm(classifiers, unit="clf")):
-        param_dist = {f"classifier__{k}": v for k, v in param_dist.items()}
+    model = Pipeline(
+        [("vectorizer", vectorizer), ("classifier", classifier)],
+        memory=Memory(CACHE_DIR, verbose=0),
+    )
 
-        model = Pipeline(
-            [("vectorizer", vectorizer), ("classifier", clf)],
-            memory=Memory(CACHE_DIR, verbose=0),
-        )
+    search = RandomizedSearchCV(
+        model,
+        param_dist,
+        cv=folds,
+        random_state=rs,
+        n_jobs=n_jobs,
+        verbose=2,
+        scoring="accuracy",
+        n_iter=10,
+    )
 
-        search = RandomizedSearchCV(
-            model,
-            param_dist,
-            cv=folds,
-            random_state=rs,
-            n_jobs=n_jobs,
-            # verbose=2,
-            scoring="accuracy",
-            n_iter=10,
-        )
+    with warnings.catch_warnings():
+        warnings.filterwarnings("once", category=ConvergenceWarning)
+        warnings.filterwarnings("ignore", category=UserWarning, message="Persisting input arguments took")
 
-        pbar.set_description(f"Searching for {clf.__class__.__name__}")
+        search.fit(text_train, label_train)
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("once", category=ConvergenceWarning)
-            warnings.filterwarnings("ignore", category=UserWarning, message="Persisting input arguments took")
-
-            search.fit(text_train, label_train)
-
-        best_model = search.best_estimator_
-        acc = best_model.score(text_test, label_test)
-        models.append((best_model, acc))
-
-    print("Final results:")
-    print("--------------")
-    print("\n".join(f"{model.named_steps['classifier'].__class__.__name__}: {acc:.2%}" for model, acc in models))
-
-    best_model, best_acc = max(models, key=lambda x: x[1])
-    print(f"Settled on {best_model.named_steps['classifier'].__class__.__name__}")
-    return best_model, best_acc
+    final_model = search.best_estimator_
+    return final_model, final_model.score(text_test, label_test)
 
 
 def evaluate_model(
@@ -211,7 +177,7 @@ def evaluate_model(
         Mean accuracy and standard deviation
     """
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=UserWarning)
+        warnings.filterwarnings("ignore", category=UserWarning, message="Persisting input arguments took")
         scores = cross_val_score(
             model,
             token_data,

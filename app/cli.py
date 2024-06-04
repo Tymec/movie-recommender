@@ -217,10 +217,9 @@ def evaluate(
 )
 @click.option(
     "--min-df",
-    default=0.1,
-    help="Minimum document frequency for the vectorizer (ignored for hashing)",
+    default=5,
+    help="Minimum document frequency for the features (ignored for hashing)",
     show_default=True,
-    type=click.FloatRange(0, 1),
 )
 @click.option(
     "--cv",
@@ -268,7 +267,7 @@ def train(
     dataset: Literal["sentiment140", "amazonreviews", "imdb50k"],
     vectorizer: Literal["tfidf", "count", "hashing"],
     max_features: int,
-    min_df: float,
+    min_df: int,
     cv: int,
     token_batch_size: int,
     token_jobs: int,
