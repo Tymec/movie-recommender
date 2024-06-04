@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Literal, Sequence
 import emoji
 import pandas as pd
 import spacy
+from joblib import Parallel, delayed
 from tqdm import tqdm
 
 from app.constants import (
@@ -160,16 +161,24 @@ def tokenize(
     Returns:
         Tokenized text data
     """
-    text_data = [
-        _clean(text)
+    # text_data = [
+    #     _clean(text)
+    #     for text in tqdm(
+    #         text_data,
+    #         desc="Cleaning",
+    #         unit="doc",
+    #         disable=not show_progress,
+    #     )
+    # ]
+    text_data = Parallel(n_jobs=n_jobs)(
+        delayed(_clean)(text)
         for text in tqdm(
             text_data,
             desc="Cleaning",
             unit="doc",
             disable=not show_progress,
         )
-    ]
-
+    )
     return pd.Series(
         [
             _lemmatize(doc, character_threshold)

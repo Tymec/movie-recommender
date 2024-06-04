@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 __all__ = ["serialize", "deserialize"]
 
 
-def serialize(data: Sequence[str | int], path: Path, max_size: int = 100000, show_progress: bool = False) -> None:
+def serialize(data: Sequence[str | int], path: Path, max_size: int = 100_000, show_progress: bool = False) -> None:
     """Serialize data to a file
 
     Args:
