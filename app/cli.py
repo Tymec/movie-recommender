@@ -216,6 +216,13 @@ def evaluate(
     type=click.IntRange(1, None),
 )
 @click.option(
+    "--min-df",
+    default=0.1,
+    help="Minimum document frequency for the vectorizer (ignored for hashing)",
+    show_default=True,
+    type=click.FloatRange(0, 1),
+)
+@click.option(
     "--cv",
     default=5,
     help="Number of cross-validation folds",
@@ -261,6 +268,7 @@ def train(
     dataset: Literal["sentiment140", "amazonreviews", "imdb50k"],
     vectorizer: Literal["tfidf", "count", "hashing"],
     max_features: int,
+    min_df: float,
     cv: int,
     token_batch_size: int,
     token_jobs: int,
@@ -324,6 +332,7 @@ def train(
         label_data,
         vectorizer=vectorizer,
         max_features=max_features,
+        min_df=min_df,
         folds=cv,
         n_jobs=train_jobs,
         seed=seed,

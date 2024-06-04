@@ -36,6 +36,7 @@ def _identity(x: list[str]) -> list[str]:
 def _get_vectorizer(
     name: Literal["tfidf", "count", "hashing"],
     n_features: int,
+    min_df: float = 0.1,
     ngram: tuple[int, int] = (1, 2),
 ) -> TransformerMixin:
     """Get the appropriate vectorizer.
@@ -43,6 +44,7 @@ def _get_vectorizer(
     Args:
         name: Type of vectorizer
         n_features: Maximum number of features
+        min_df: Minimum document frequency (ignored for hashing)
         ngram: N-gram range [min_n, max_n]
 
     Returns:
@@ -64,11 +66,13 @@ def _get_vectorizer(
         case "tfidf":
             return TfidfVectorizer(
                 max_features=n_features,
+                min_df=min_df,
                 **shared_params,
             )
         case "count":
             return CountVectorizer(
                 max_features=n_features,
+                min_df=min_df,
                 **shared_params,
             )
         case "hashing":
@@ -92,6 +96,7 @@ def train_model(
     label_data: list[int],
     vectorizer: Literal["tfidf", "count", "hashing"],
     max_features: int,
+    min_df: float = 0.1,
     folds: int = 5,
     n_jobs: int = 4,
     seed: int = 42,
@@ -103,6 +108,7 @@ def train_model(
         label_data: Label data
         vectorizer: Which vectorizer to use
         max_features: Maximum number of features
+        min_df: Minimum document frequency (ignored for hashing)
         folds: Number of cross-validation folds
         n_jobs: Number of parallel jobs
         seed: Random seed (None for random seed)
@@ -122,7 +128,7 @@ def train_model(
         random_state=rs,
     )
 
-    vectorizer = _get_vectorizer(vectorizer, max_features)
+    vectorizer = _get_vectorizer(vectorizer, max_features, min_df)
     classifiers = [
         (LogisticRegression(max_iter=1000, random_state=rs), {"C": np.logspace(-4, 4, 20)}),
         # (LinearSVC(max_iter=10000, random_state=rs), {"C": np.logspace(-4, 4, 20)}),
