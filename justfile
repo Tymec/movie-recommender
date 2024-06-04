@@ -8,12 +8,12 @@
 
 @install:
   poetry install --only main
-  poetry run spacy download en_core_web_sm
 
 @install-dev:
-  poetry self add poetry-plugin-export
+  pipx inject poetry poetry-plugin-export
   poetry install
   poetry run spacy download en_core_web_sm
+  poetry run pre-commit install
 
 @requirements:
   poetry export -f requirements.txt --output requirements.txt --without dev
