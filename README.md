@@ -206,9 +206,9 @@ graph LR
 The following pre-trained models are available for use:
 | Dataset | Vectorizer | Classifier | Features | Accuracy on test | Accuracy on self | Model |
 | --- | --- | --- | --- | --- | --- | --- |
-| `imdb50k` | `tfidf` | `LinearRegression` | 20 000 | 75.63% ± 4.73% | 89.24% ± 0.13% (cv=5) | [Here](models/imdb50k_tfidf_ft20000.pkl) |
-| `sentiment140` | `tfidf` | `LinearRegression` | 20 000 | 75.63% ± 4.73% | 77.32% ± 0.28% (cv=5) | [Here](models/sentiment140_tfidf_ft20000.pkl) |
-| `amazonreviews` | `tfidf` | `LinearRegression` | 20 000 | 65.49% ± 7.03% | 90.08% ± 0.00% (cv=1) | [Here](models/amazonreviews_tfidf_ft20000.pkl) |
+| `imdb50k` | `tfidf` | `LinearRegression` | 20 000 | 75.63% ± 4.73% | 89.24% ± 0.13% (5-fold) | [Here](models/imdb50k_tfidf_ft20000.pkl) |
+| `sentiment140` | `tfidf` | `LinearRegression` | 20 000 | 75.63% ± 4.73% | 77.32% ± 0.28% (5-fold) | [Here](models/sentiment140_tfidf_ft20000.pkl) |
+| `amazonreviews` | `tfidf` | `LinearRegression` | 20 000 | 65.49% ± 7.03% | 90.08% ± 0.00% (train-test) | [Here](models/amazonreviews_tfidf_ft20000.pkl) |
 
 
 ## License
