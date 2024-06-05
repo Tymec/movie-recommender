@@ -1,3 +1,5 @@
+"""Functions to load and preprocess text data."""
+
 from __future__ import annotations
 
 import bz2

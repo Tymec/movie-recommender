@@ -1,3 +1,5 @@
+"""GUI using Gradio."""
+
 from __future__ import annotations
 
 import os
@@ -22,7 +24,11 @@ NEGATIVE_LABEL = "Negative 😤"
 
 @lru_cache(maxsize=1)
 def load_model() -> BaseEstimator:
-    """Load the trained model and cache it."""
+    """Load the trained model and cache it.
+
+    Returns:
+        Loaded model
+    """
     model_path = os.environ.get("MODEL_PATH", None)
     if model_path is None:
         msg = "MODEL_PATH environment variable not set"
@@ -31,9 +37,15 @@ def load_model() -> BaseEstimator:
 
 
 def sentiment_analysis(text: str) -> str:
-    """Perform sentiment analysis on the provided text."""
-    model = load_model()
-    prediction = infer_model(model, [text])[0]
+    """Perform sentiment analysis on the provided text.
+
+    Args:
+        text: Input text
+
+    Returns:
+        Predicted sentiment label
+    """
+    prediction = infer_model(load_model(), [text])[0]
 
     if prediction == 0:
         return NEGATIVE_LABEL
@@ -59,7 +71,11 @@ demo = gr.Interface(
 
 
 def launch_gui(share: bool) -> None:
-    """Launch the Gradio GUI."""
+    """Launch the Gradio GUI.
+
+    Args:
+        share: Whether to create a public link
+    """
     demo.launch(share=share)
 
 

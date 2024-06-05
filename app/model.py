@@ -1,3 +1,5 @@
+"""Functions for model training, evaluation, and inference."""
+
 from __future__ import annotations
 
 import warnings
@@ -21,7 +23,7 @@ __all__ = ["train_model", "evaluate_model", "infer_model"]
 
 
 def _identity(x: list[str]) -> list[str]:
-    """Identity function for use in TfidfVectorizer.
+    """Identity function for use in vectorizers.
 
     Args:
         x: Input data
@@ -36,7 +38,6 @@ def _get_vectorizer(
     name: Literal["tfidf", "count", "hashing"],
     n_features: int,
     min_df: int = 5,
-    ngram: tuple[int, int] = (1, 2),
 ) -> TransformerMixin:
     """Get the appropriate vectorizer.
 
@@ -44,7 +45,6 @@ def _get_vectorizer(
         name: Type of vectorizer
         n_features: Maximum number of features
         min_df: Minimum document frequency (ignored for hashing)
-        ngram: N-gram range [min_n, max_n]
 
     Returns:
         Vectorizer instance
@@ -53,7 +53,7 @@ def _get_vectorizer(
         ValueError: If the vectorizer is not recognized
     """
     shared_params = {
-        "ngram_range": ngram,
+        "ngram_range": (1, 2),  # unigrams and bigrams
         # disable text processing
         "tokenizer": _identity,
         "preprocessor": _identity,
@@ -96,7 +96,7 @@ def train_model(
     vectorizer: Literal["tfidf", "count", "hashing"],
     max_features: int,
     min_df: int = 5,
-    folds: int = 5,
+    cv: int = 5,
     n_jobs: int = 4,
     seed: int = 42,
 ) -> tuple[BaseEstimator, float]:
@@ -108,7 +108,7 @@ def train_model(
         vectorizer: Which vectorizer to use
         max_features: Maximum number of features
         min_df: Minimum document frequency (ignored for hashing)
-        folds: Number of cross-validation folds
+        cv: Number of cross-validation folds
         n_jobs: Number of parallel jobs
         seed: Random seed (None for random seed)
 
@@ -120,6 +120,7 @@ def train_model(
     """
     rs = None if seed == -1 else seed
 
+    # Split the data into training and testing sets
     text_train, text_test, label_train, label_test = train_test_split(
         token_data,
         label_data,
@@ -127,24 +128,25 @@ def train_model(
         random_state=rs,
     )
 
+    # Create the model pipeline
     vectorizer = _get_vectorizer(vectorizer, max_features, min_df)
     classifier = LogisticRegression(max_iter=1000, random_state=rs)
-    param_dist = {"classifier__C": np.logspace(-4, 4, 20)}
-
     model = Pipeline(
         [("vectorizer", vectorizer), ("classifier", classifier)],
         memory=Memory(CACHE_DIR, verbose=0),
     )
+    param_dist = {"classifier__C": np.logspace(-4, 4, 20)}
 
+    # Perform randomized search for hyperparameter tuning
     search = RandomizedSearchCV(
         model,
         param_dist,
-        cv=folds,
+        cv=cv,
         random_state=rs,
         n_jobs=n_jobs,
-        verbose=2,
         scoring="accuracy",
         n_iter=10,
+        verbose=2,
     )
 
     with warnings.catch_warnings():
@@ -161,7 +163,7 @@ def evaluate_model(
     model: BaseEstimator,
     token_data: Sequence[Sequence[str]],
     label_data: list[int],
-    folds: int = 5,
+    cv: int = 5,
     n_jobs: int = 4,
 ) -> tuple[float, float]:
     """Evaluate the model using cross-validation.
@@ -170,7 +172,7 @@ def evaluate_model(
         model: Trained model
         token_data: Tokenized text data
         label_data: Label data
-        folds: Number of cross-validation folds
+        cv: Number of cross-validation folds
         n_jobs: Number of parallel jobs
 
     Returns:
@@ -178,15 +180,18 @@ def evaluate_model(
     """
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning, message="Persisting input arguments took")
+
+        # Perform cross-validation to evaluate the model
         scores = cross_val_score(
             model,
             token_data,
             label_data,
-            cv=folds,
+            cv=cv,
             scoring="accuracy",
             n_jobs=n_jobs,
             verbose=2,
         )
+
     return scores.mean(), scores.std()
 
 

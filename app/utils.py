@@ -1,3 +1,5 @@
+"""Utility functions for the application."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Sequence
@@ -20,6 +22,7 @@ def serialize(data: Sequence[str | int], path: Path, max_size: int = 100_000, sh
         max_size: The maximum size a chunk can be (in elements)
         show_progress: Whether to show a progress bar
     """
+    # Split the data into chunks of size `max_size` and serialize each one
     for i, chunk in enumerate(
         tqdm(
             [data[i : i + max_size] for i in range(0, len(data), max_size)],
@@ -28,6 +31,7 @@ def serialize(data: Sequence[str | int], path: Path, max_size: int = 100_000, sh
             disable=not show_progress,
         ),
     ):
+        # The first chunk is saved as `.pkl` and the rest as `.i.pkl`
         fd = path.with_suffix(f".{i}.pkl" if i else ".pkl")
         with fd.open("wb") as f:
             joblib.dump(chunk, f, compress=3)

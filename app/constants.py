@@ -1,3 +1,5 @@
+"""Constants used by the application."""
+
 from __future__ import annotations
 
 import os
