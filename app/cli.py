@@ -1,13 +1,73 @@
+"""CLI using Click."""
+
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 from typing import Literal
 
 import click
+import joblib
+import pandas as pd
+
+from app.constants import TOKENIZER_CACHE_DIR
 
 __all__ = ["cli_wrapper"]
 
 DONE_STR = click.style("DONE", fg="green")
+
+
+def _load_dataset(
+    dataset: str,
+    batch_size: int = 512,
+    n_jobs: int = 4,
+    force_cache: bool = False,
+) -> tuple[pd.Series, pd.Series]:
+    """Helper function to load and tokenize the dataset or use cached data if available.
+
+    Args:
+        dataset: Name of the dataset
+        batch_size: Batch size for tokenization
+        n_jobs: Number of parallel jobs
+        force_cache: Whether to force using the cached data
+
+    Returns:
+        Tokenized text data and label data
+    """
+    from app.data import load_data, tokenize
+    from app.utils import deserialize, serialize
+
+    token_cache_path = TOKENIZER_CACHE_DIR / f"{dataset}_tokenized.pkl"
+    label_cache_path = TOKENIZER_CACHE_DIR / f"{dataset}_labels.pkl"
+    use_cached_data = False
+
+    if token_cache_path.exists() and label_cache_path.exists():
+        use_cached_data = force_cache or click.confirm(
+            f"Found existing tokenized data for '{dataset}'. Use it?",
+            default=True,
+        )
+
+    if use_cached_data:
+        click.echo("Loading cached data... ", nl=False)
+        token_data = pd.Series(deserialize(token_cache_path))
+        label_data = joblib.load(label_cache_path)
+        click.echo(DONE_STR)
+    else:
+        click.echo("Loading dataset... ", nl=False)
+        text_data, label_data = load_data(dataset)
+        click.echo(DONE_STR)
+
+        click.echo("Tokenizing data... ")
+        token_data = tokenize(text_data, batch_size=batch_size, n_jobs=n_jobs, show_progress=True)
+        serialize(token_data, token_cache_path, show_progress=True)
+        joblib.dump(label_data, label_cache_path, compress=3)
+
+    click.echo("Dataset vocabulary size: ", nl=False)
+    vocab = token_data.explode().value_counts()
+    click.secho(str(len(vocab)), fg="blue")
+
+    return token_data, label_data
 
 
 @click.group()
@@ -29,8 +89,6 @@ def cli() -> None: ...
 )
 def gui(model_path: Path, share: bool) -> None:
     """Launch the Gradio GUI"""
-    import os
-
     from app.gui import launch_gui
 
     os.environ["MODEL_PATH"] = model_path.as_posix()
@@ -51,14 +109,12 @@ def predict(model_path: Path, text: list[str]) -> None:
 
     Note: Piped input takes precedence over the text argument
     """
-    import sys
-
-    import joblib
-
     from app.model import infer_model
 
+    # Combine the text arguments into a single string
     text = " ".join(text).strip()
     if not sys.stdin.isatty():
+        # If there is piped input, read it
         piped_text = sys.stdin.read().strip()
         text = piped_text or text
 
@@ -72,7 +128,6 @@ def predict(model_path: Path, text: list[str]) -> None:
 
     click.echo("Performing sentiment analysis... ", nl=False)
     prediction = infer_model(model, [text])[0]
-    # prediction = model.predict([text])[0]
     if prediction == 0:
         sentiment = click.style("NEGATIVE", fg="red")
     elif prediction == 1:
@@ -101,7 +156,7 @@ def predict(model_path: Path, text: list[str]) -> None:
     default=5,
     help="Number of cross-validation folds",
     show_default=True,
-    type=click.IntRange(1, 50),
+    type=click.IntRange(2, 50),
 )
 @click.option(
     "--token-batch-size",
@@ -136,64 +191,20 @@ def evaluate(
     force_cache: bool,
 ) -> None:
     """Evaluate the model on the the specified dataset"""
-    import gc
-
-    import joblib
-    import pandas as pd
-
-    from app.constants import TOKENIZER_CACHE_DIR
-    from app.data import load_data, tokenize
     from app.model import evaluate_model
-    from app.utils import deserialize, serialize
 
-    token_cache_path = TOKENIZER_CACHE_DIR / f"{dataset}_tokenized.pkl"
-    label_cache_path = TOKENIZER_CACHE_DIR / f"{dataset}_labels.pkl"
-    use_cached_data = False
-
-    if token_cache_path.exists():
-        use_cached_data = force_cache or click.confirm(
-            f"Found existing tokenized data for '{dataset}'. Use it?",
-            default=True,
-        )
-
-    if use_cached_data:
-        click.echo("Loading cached data... ", nl=False)
-        token_data = pd.Series(deserialize(token_cache_path))
-        label_data = joblib.load(label_cache_path)
-        click.echo(DONE_STR)
-    else:
-        click.echo("Loading dataset... ", nl=False)
-        text_data, label_data = load_data(dataset)
-        click.echo(DONE_STR)
-
-        click.echo("Tokenizing data... ")
-        token_data = tokenize(text_data, batch_size=token_batch_size, n_jobs=token_jobs, show_progress=True)
-        serialize(token_data, token_cache_path, show_progress=True)
-        joblib.dump(label_data, label_cache_path, compress=3)
-
-        del text_data
-        gc.collect()
-
-    click.echo("Size of vocabulary: ", nl=False)
-    vocab = token_data.explode().value_counts()
-    click.secho(str(len(vocab)), fg="blue")
+    token_data, label_data = _load_dataset(dataset, token_batch_size, token_jobs, force_cache)
 
     click.echo("Loading model... ", nl=False)
     model = joblib.load(model_path)
     click.echo(DONE_STR)
-
-    if cv == 1:
-        click.echo("Evaluating model... ", nl=False)
-        acc = model.score(token_data, label_data)
-        click.secho(f"{acc:.2%}", fg="blue")
-        return
 
     click.echo("Evaluating model... ")
     acc_mean, acc_std = evaluate_model(
         model,
         token_data,
         label_data,
-        folds=cv,
+        cv=cv,
         n_jobs=eval_jobs,
     )
     click.secho(f"{acc_mean:.2%} ± {acc_std:.2%}", fg="blue")
@@ -230,7 +241,7 @@ def evaluate(
     default=5,
     help="Number of cross-validation folds",
     show_default=True,
-    type=click.IntRange(1, 50),
+    type=click.IntRange(2, 50),
 )
 @click.option(
     "--token-batch-size",
@@ -281,51 +292,14 @@ def train(
     force_cache: bool,
 ) -> None:
     """Train the model on the provided dataset"""
-    import gc
-
-    import joblib
-    import pandas as pd
-
-    from app.constants import MODEL_DIR, TOKENIZER_CACHE_DIR
-    from app.data import load_data, tokenize
+    from app.constants import MODEL_DIR
     from app.model import train_model
-    from app.utils import deserialize, serialize
 
     model_path = MODEL_DIR / f"{dataset}_{vectorizer}_ft{max_features}.pkl"
     if model_path.exists() and not overwrite:
         click.confirm(f"Model file '{model_path}' already exists. Overwrite?", abort=True)
 
-    token_cache_path = TOKENIZER_CACHE_DIR / f"{dataset}_tokenized.pkl"
-    label_cache_path = TOKENIZER_CACHE_DIR / f"{dataset}_labels.pkl"
-    use_cached_data = False
-
-    if token_cache_path.exists():
-        use_cached_data = force_cache or click.confirm(
-            f"Found existing tokenized data for '{dataset}'. Use it?",
-            default=True,
-        )
-
-    if use_cached_data:
-        click.echo("Loading cached data... ", nl=False)
-        token_data = pd.Series(deserialize(token_cache_path))
-        label_data = joblib.load(label_cache_path)
-        click.echo(DONE_STR)
-    else:
-        click.echo("Loading dataset... ", nl=False)
-        text_data, label_data = load_data(dataset)
-        click.echo(DONE_STR)
-
-        click.echo("Tokenizing data... ")
-        token_data = tokenize(text_data, batch_size=token_batch_size, n_jobs=token_jobs, show_progress=True)
-        serialize(token_data, token_cache_path, show_progress=True)
-        joblib.dump(label_data, label_cache_path, compress=3)
-
-        del text_data
-        gc.collect()
-
-    click.echo("Size of vocabulary: ", nl=False)
-    vocab = token_data.explode().value_counts()
-    click.secho(str(len(vocab)), fg="blue")
+    token_data, label_data = _load_dataset(dataset, token_batch_size, token_jobs, force_cache)
 
     click.echo("Training model... ")
     model, accuracy = train_model(
@@ -334,10 +308,11 @@ def train(
         vectorizer=vectorizer,
         max_features=max_features,
         min_df=min_df,
-        folds=cv,
+        cv=cv,
         n_jobs=train_jobs,
         seed=seed,
     )
+
     click.echo("Model accuracy: ", nl=False)
     click.secho(f"{accuracy:.2%}", fg="blue")
 
