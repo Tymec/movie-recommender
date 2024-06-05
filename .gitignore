@@ -198,3 +198,4 @@ data/*
 !data/slang.json
 !data/test.csv
 !data/proto_results.csv
+.python-version
