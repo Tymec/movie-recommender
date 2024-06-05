@@ -141,13 +141,13 @@ def evaluate(
     import joblib
     import pandas as pd
 
-    from app.constants import TOKENIZER_CACHE_PATH
+    from app.constants import TOKENIZER_CACHE_DIR
     from app.data import load_data, tokenize
     from app.model import evaluate_model
     from app.utils import deserialize, serialize
 
-    token_cache_path = TOKENIZER_CACHE_PATH / f"{dataset}_tokenized.pkl"
-    label_cache_path = TOKENIZER_CACHE_PATH / f"{dataset}_labels.pkl"
+    token_cache_path = TOKENIZER_CACHE_DIR / f"{dataset}_tokenized.pkl"
+    label_cache_path = TOKENIZER_CACHE_DIR / f"{dataset}_labels.pkl"
     use_cached_data = False
 
     if token_cache_path.exists():
@@ -168,8 +168,6 @@ def evaluate(
 
         click.echo("Tokenizing data... ")
         token_data = tokenize(text_data, batch_size=token_batch_size, n_jobs=token_jobs, show_progress=True)
-
-        click.echo("Caching tokenized data... ")
         serialize(token_data, token_cache_path, show_progress=True)
         joblib.dump(label_data, label_cache_path, compress=3)
 
@@ -184,7 +182,13 @@ def evaluate(
     model = joblib.load(model_path)
     click.echo(DONE_STR)
 
-    click.echo("Evaluating model... ", nl=False)
+    if cv == 1:
+        click.echo("Evaluating model... ", nl=False)
+        acc = model.score(token_data, label_data)
+        click.secho(f"{acc:.2%}", fg="blue")
+        return
+
+    click.echo("Evaluating model... ")
     acc_mean, acc_std = evaluate_model(
         model,
         token_data,
@@ -282,7 +286,7 @@ def train(
     import joblib
     import pandas as pd
 
-    from app.constants import MODEL_DIR, TOKENIZER_CACHE_PATH
+    from app.constants import MODEL_DIR, TOKENIZER_CACHE_DIR
     from app.data import load_data, tokenize
     from app.model import train_model
     from app.utils import deserialize, serialize
@@ -291,8 +295,8 @@ def train(
     if model_path.exists() and not overwrite:
         click.confirm(f"Model file '{model_path}' already exists. Overwrite?", abort=True)
 
-    token_cache_path = TOKENIZER_CACHE_PATH / f"{dataset}_tokenized.pkl"
-    label_cache_path = TOKENIZER_CACHE_PATH / f"{dataset}_labels.pkl"
+    token_cache_path = TOKENIZER_CACHE_DIR / f"{dataset}_tokenized.pkl"
+    label_cache_path = TOKENIZER_CACHE_DIR / f"{dataset}_labels.pkl"
     use_cached_data = False
 
     if token_cache_path.exists():
@@ -313,8 +317,6 @@ def train(
 
         click.echo("Tokenizing data... ")
         token_data = tokenize(text_data, batch_size=token_batch_size, n_jobs=token_jobs, show_progress=True)
-
-        click.echo("Caching tokenized data... ")
         serialize(token_data, token_cache_path, show_progress=True)
         joblib.dump(label_data, label_cache_path, compress=3)
 

@@ -55,7 +55,6 @@ def slang() -> tuple[Pattern, dict[str, str]]:
         FileNotFoundError: If the file is not found
     """
     if not SLANGMAP_PATH.exists():
-        # msg = f"Missing slang mapping file: {SLANG_PATH}"
         msg = (
             f"Slang mapping file not found at: '{SLANGMAP_PATH}'\n"
             "Please download the file from:\n"
@@ -89,7 +88,6 @@ def _clean(text: str) -> str:
     text = slang_pattern.sub(lambda x: slang_mapping[x.group()], text)
 
     # Remove acronyms and abbreviations
-    # text = re.sub(r"(?:[a-z]\.){2,}", "", text)
     text = re.sub(r"\b(?:[a-z]\.?)(?:[a-z]\.)\b", "", text)
 
     # Remove honorifics
@@ -161,15 +159,6 @@ def tokenize(
     Returns:
         Tokenized text data
     """
-    # text_data = [
-    #     _clean(text)
-    #     for text in tqdm(
-    #         text_data,
-    #         desc="Cleaning",
-    #         unit="doc",
-    #         disable=not show_progress,
-    #     )
-    # ]
     text_data = Parallel(n_jobs=n_jobs)(
         delayed(_clean)(text)
         for text in tqdm(
@@ -310,11 +299,8 @@ def load_imdb50k() -> tuple[list[str], list[int]]:
     return data["review"].tolist(), data["sentiment"].tolist()
 
 
-def load_test(include_neutral: bool = False) -> tuple[list[str], list[int]]:
+def load_test() -> tuple[list[str], list[int]]:
     """Load the test dataset and make it suitable for use.
-
-    Args:
-        include_neutral: Whether to include neutral sentiment
 
     Returns:
         Text and label data
@@ -334,21 +320,8 @@ def load_test(include_neutral: bool = False) -> tuple[list[str], list[int]]:
     # Load the dataset
     data = pd.read_csv(TEST_DATASET_PATH)
 
-    # Ignore rows with neutral sentiment
-    if not include_neutral:
-        data = data[data["label"] != 1]
-
-    # Map sentiment values
-    data["label"] = data["label"].map(
-        {
-            0: 0,  # Negative
-            1: 2,  # Neutral
-            2: 1,  # Positive
-        },
-    )
-
     # Return as lists
-    return data["text"].tolist(), data["label"].tolist()
+    return data["text"].tolist(), data["sentiment"].tolist()
 
 
 def load_data(dataset: Literal["sentiment140", "amazonreviews", "imdb50k", "test"]) -> tuple[list[str], list[int]]:
@@ -371,7 +344,7 @@ def load_data(dataset: Literal["sentiment140", "amazonreviews", "imdb50k", "test
         case "imdb50k":
             return load_imdb50k()
         case "test":
-            return load_test(include_neutral=False)
+            return load_test()
         case _:
             msg = f"Unknown dataset: {dataset}"
             raise ValueError(msg)

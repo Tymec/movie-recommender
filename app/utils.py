@@ -23,6 +23,7 @@ def serialize(data: Sequence[str | int], path: Path, max_size: int = 100_000, sh
     for i, chunk in enumerate(
         tqdm(
             [data[i : i + max_size] for i in range(0, len(data), max_size)],
+            desc="Serializing",
             unit="chunk",
             disable=not show_progress,
         ),
