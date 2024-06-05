@@ -196,4 +196,4 @@ pyrightconfig.json
 # Custom
 data/*
 !data/slang.json
-flagged/
+!data/test.csv

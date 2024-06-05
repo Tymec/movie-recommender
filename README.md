@@ -17,7 +17,7 @@ models:
 ---
 
 
-# Sentiment Analysis [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Tymec/sentiment-analysis)
+# Sentiment Analysis [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://tymec-sentiment-analysis.hf.space)
 
 
 ### Table of Contents
@@ -64,8 +64,7 @@ To see the available commands and options, run:
 ```bash
 python -m app --help
 ```
-
-<!-- Image of the output -->
+![help](assets/help.png)
 
 
 ### Predict
@@ -79,8 +78,7 @@ Alternatively, you can pipe the text into the command:
 ```bash
 echo "I love this movie" | python -m app predict --model <model>
 ```
-
-<!-- Image of the output -->
+![predict-help](assets/predict.png)
 
 
 ### GUI
@@ -89,11 +87,10 @@ To launch the GUI, run the following command:
 python -m app gui --model <model>
 ```
 where `<model>` is the path to the trained model. Add the `--share` flag to create a publicly accessible link.
+![gui-help](assets/gui.png)
 
 After running the command, open the link from the terminal in your browser to access the GUI.
-
-<!-- Image of the output -->
-<!-- Image of the GUI -->
+![gui](assets/space.png)
 
 
 ### Training
@@ -109,8 +106,7 @@ To see all available options, run:
 ```bash
 python -m app train --help
 ```
-
-<!-- Image of the output -->
+![train-help](assets/train.png)
 
 
 ### Evaluation
@@ -124,8 +120,7 @@ To see all available options, run:
 ```bash
 python -m app evaluate --help
 ```
-
-<!-- Image of the output -->
+![evaluate-help](assets/evaluate.png)
 
 
 ## Options
@@ -136,10 +131,10 @@ python -m app evaluate --help
 | sentiment140 | `data/sentiment140.csv` | | [Twitter Sentiment Analysis](https://www.kaggle.com/kazanova/sentiment140) |
 | amazonreviews | `data/amazonreviews.bz2` | only train is used | [Amazon Product Reviews](https://www.kaggle.com/bittlingmayer/amazonreviews) |
 | imdb50k | `data/imdb50k.csv` | | [IMDB Movie Reviews](https://www.kaggle.com/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews) |
-| test | `data/test.csv` | required for `evaluate` | [Multiclass Sentiment Analysis](https://huggingface.co/datasets/Sp1786/multiclass-sentiment-analysis-dataset) |
+| test | `data/test.csv` | only used in `evaluate` | [Sentiment Analysis Evaluation Dataset](https://www.kaggle.com/datasets/prishasawhney/sentiment-analysis-evaluation-dataset) |
 
-#### Used for text preprocessing
-- [Slang Map](Https://www.kaggle.com/code/nmaguette/up-to-date-list-of-slangs-for-text-preprocessing)
+#### Other
+During text preprocessing, this [slang map](Https://www.kaggle.com/code/nmaguette/up-to-date-list-of-slangs-for-text-preprocessing) is used to convert slang words to their formal form.
 
 
 ### Vectorizers
@@ -164,8 +159,9 @@ The following environment variables can be set to customize the behavior of the 
 
 ### Architecture
 The input text is first preprocessed and tokenized using `re` and `spaCy` where:
-- The text is cleaned up by removing any HTML tags and converting emojis to text
-- Stop words and punctuation are removed
+- Any HTML tags are removed
+- Emojis and slang words are converted to their text form
+- Stop words, punctuation and special characters are removed
 - URLs, email addresses and numbers are removed
 - Words are converted to lowercase
 - Lemmatization is performed (words are converted to their base form based on the surrounding context)
@@ -198,7 +194,6 @@ graph LR
   subgraph Classification
     direction LR
     D1[LogisticRegression]
-    D2[LinearSVC]
   end
 
   Classification --> |sentiment|END:::hidden
@@ -211,9 +206,10 @@ graph LR
 The following pre-trained models are available for use:
 | Dataset | Vectorizer | Classifier | Features | Accuracy on test | Accuracy on self | Model |
 | --- | --- | --- | --- | --- | --- | --- |
-| `imdb50k` | `tfidf` | `LinearRegression` | 20 000 | 83.24% ± 0.99% | 89.24% ± 0.13% | [Here](models/imdb50k_tfidf_ft20000.pkl) |
-| `sentiment140` | `tfidf` | `LinearRegression` | 20 000 | 83.24% ± 0.99% | 77.32% ± 0.28% | [Here](models/sentiment140_tfidf_ft20000.pkl) |
-| `amazonreviews` | `tfidf` | `LinearRegression` | 20 000 | 82.17% ± 0.85% | ❌ | [Here](models/amazonreviews_tfidf_ft20000.pkl) |
+| `imdb50k` | `tfidf` | `LinearRegression` | 20 000 | 75.63% ± 4.73% | 89.24% ± 0.13% (cv=5) | [Here](models/imdb50k_tfidf_ft20000.pkl) |
+| `sentiment140` | `tfidf` | `LinearRegression` | 20 000 | 75.63% ± 4.73% | 77.32% ± 0.28% (cv=5) | [Here](models/sentiment140_tfidf_ft20000.pkl) |
+| `amazonreviews` | `tfidf` | `LinearRegression` | 20 000 | 65.49% ± 7.03% | 90.08% ± 0.00% (cv=1) | [Here](models/amazonreviews_tfidf_ft20000.pkl) |
+
 
 ## License
 Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
